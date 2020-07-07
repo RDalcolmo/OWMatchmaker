@@ -15,7 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OWMatchmaker.Models;
 using Microsoft.EntityFrameworkCore;
-using Birthday_Bot.Models;
+using OWMatchmaker.Models;
 
 namespace OWMatchmaker
 {

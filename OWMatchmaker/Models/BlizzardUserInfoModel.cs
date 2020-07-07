@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Birthday_Bot.Models
+namespace OWMatchmaker.Models
 {
 	public class BlizzardUserInfoModel
 	{

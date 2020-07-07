@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Birthday_Bot.Models
+namespace OWMatchmaker.Models
 {
     public partial class Lobbies
     {

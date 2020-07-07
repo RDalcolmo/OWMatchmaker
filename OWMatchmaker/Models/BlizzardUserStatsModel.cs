@@ -1,11 +1,11 @@
 ﻿using Newtonsoft.Json;
 
-namespace Birthday_Bot.Models
+namespace OWMatchmaker.Models
 {
     public partial class BlizzardUserStatsModel
     {
         [JsonProperty("rating")]
-        public long Rating { get; set; }
+        public int? Rating { get; set; }
 
         [JsonProperty("ratingIcon")]
         public string RatingIcon { get; set; }

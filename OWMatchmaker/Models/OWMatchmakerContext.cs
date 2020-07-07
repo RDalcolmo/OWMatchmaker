@@ -2,10 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Birthday_Bot.Models
+namespace OWMatchmaker.Models
 {
     public partial class OWMatchmakerContext : DbContext
     {
+            {
         private static DbContextOptions<OWMatchmakerContext> _options;
 
         public OWMatchmakerContext()
@@ -22,7 +23,8 @@ namespace Birthday_Bot.Models
         public virtual DbSet<Lobbies> Lobbies { get; set; }
         public virtual DbSet<Matches> Matches { get; set; }
         public virtual DbSet<Players> Players { get; set; }
-        public virtual DbSet<ReactMessages> ReactMessages { get; set; }
+        public virtual DbSet<Messages> Messages { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -73,6 +75,18 @@ namespace Birthday_Bot.Models
                     .HasConstraintName("Matches_PlayerID_fkey");
             });
 
+            modelBuilder.Entity<Messages>(entity =>
+            {
+                entity.HasKey(e => e.MessageId)
+                    .HasName("Messages_pkey");
+
+                entity.Property(e => e.MessageId)
+                    .HasColumnName("MessageID")
+                    .ValueGeneratedNever();
+
+                entity.Property(e => e.OwnerId).HasColumnName("OwnerID");
+            });
+
             modelBuilder.Entity<Players>(entity =>
             {
                 entity.HasKey(e => e.UserId)
@@ -83,16 +97,6 @@ namespace Birthday_Bot.Models
                     .ValueGeneratedNever();
 
                 entity.Property(e => e.Sr).HasColumnName("SR");
-            });
-
-            modelBuilder.Entity<ReactMessages>(entity =>
-            {
-                entity.HasKey(e => e.MessageId)
-                    .HasName("ReactMessages_pkey");
-
-                entity.Property(e => e.MessageId)
-                    .HasColumnName("MessageID")
-                    .ValueGeneratedNever();
             });
 
             OnModelCreatingPartial(modelBuilder);

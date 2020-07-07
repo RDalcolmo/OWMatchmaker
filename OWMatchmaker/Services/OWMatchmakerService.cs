@@ -8,7 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
-using Birthday_Bot.Models;
+using OWMatchmaker.Models;
 
 namespace OWMatchmaker.Services
 {
@@ -47,9 +47,9 @@ namespace OWMatchmaker.Services
 				await arg2.SendMessageAsync("We could not set your role as you are currently not registered with our application. Please use the command '**!r p**' before setting your role.");
 			}
 
-			var message = await _dbContext.ReactMessages.FindAsync(messageID);
+			var message = await _dbContext.Messages.FindAsync(messageID);
 
-			if (message.ReactionType == 1)
+			if (message.Type == 1)
 			{
 				switch (arg3.Emote.Name)
 				{
@@ -65,7 +65,7 @@ namespace OWMatchmaker.Services
 					default:
 						break;
 				}
-				_dbContext.ReactMessages.Remove(message);
+				_dbContext.Messages.Remove(message);
 				await _dbContext.SaveChangesAsync();
 
 				await arg2.DeleteMessageAsync(arg3.MessageId);

@@ -9,7 +9,7 @@ using Discord.Addons.Interactive;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Reflection;
-using Birthday_Bot.Models;
+using OWMatchmaker.Models;
 using Microsoft.Extensions.Configuration;
 
 namespace OWMatchmaker.Modules
@@ -92,7 +92,12 @@ namespace OWMatchmaker.Modules
 								.AddField("Registration Program", "Welcome Hero! My name is Matcher and I will guide you through this process.\nClick the link above to Authorize.");
 			var embed = builder.Build();
 
-			await ReplyAsync(null, embed: embed).ConfigureAwait(false);
+
+			await ReplyAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.");
+			var messageSent = await ReplyAsync(null, embed: embed).ConfigureAwait(false);
+
+			await _dbContext.Messages.AddAsync(new Messages() { MessageId = (long)messageSent.Id, Type = 1, OwnerId = (long)Context.User.Id });
+			await _dbContext.SaveChangesAsync();
 		}
 
 		[Command("role")]
@@ -125,7 +130,7 @@ namespace OWMatchmaker.Modules
 			var sent = await ReplyAsync(null, false, embed);
 			await sent.AddReactionsAsync(emotes);
 			
-			await _dbContext.ReactMessages.AddAsync(new ReactMessages() { MessageId = (long)sent.Id, ReactionType = 1 });
+			await _dbContext.Messages.AddAsync(new Messages() { MessageId = (long)sent.Id, Type = 1 });
 			await _dbContext.SaveChangesAsync();
 		}
 	}

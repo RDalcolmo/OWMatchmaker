@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
-    <RootNamespace>Birthday_Bot</RootNamespace>
+    <RootNamespace>OWMatchmaker</RootNamespace>
     <UserSecretsId>9ffd1580-82f6-4a3e-92f7-857d1fda7dfe</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
