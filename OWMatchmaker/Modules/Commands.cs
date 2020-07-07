@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Reflection;
 using Birthday_Bot.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace OWMatchmaker.Modules
 {
@@ -68,9 +69,11 @@ namespace OWMatchmaker.Modules
 	public class RegistrationModule : ModuleBase
 	{
 		private readonly OWMatchmakerContext _dbContext;
+		private readonly IConfiguration _config;
 
-		public RegistrationModule(OWMatchmakerContext dbContext)
+		public RegistrationModule(IConfiguration config, OWMatchmakerContext dbContext)
 		{
+			_config = config;
 			_dbContext = dbContext;
 		}
 
@@ -78,38 +81,18 @@ namespace OWMatchmaker.Modules
 		[Alias("p")]
 		public async Task RegisterPlayer()
 		{
-			var playerID = (long)Context.User.Id;
+			var builder = new EmbedBuilder()
+								.WithTitle("Click Here to Register")
+								.WithUrl(_config["BlizzardOAuthURL"] + Context.User.Id)
+								.WithColor(new Color(0x9B4800))
+								.WithFooter(footer => {
+									footer
+										.WithText("owmatcher.io");
+								})
+								.AddField("Registration Program", "Welcome Hero! My name is Matcher and I will guide you through this process.\nClick the link above to Authorize.");
+			var embed = builder.Build();
 
-			var player = await _dbContext.Players.FindAsync(playerID);
-
-			if (player != null)
-			{
-				await ReplyAsync("You are already registered as a player!");
-			}
-			else
-			{
-				await _dbContext.Players.AddAsync(new Players() { UserId = playerID });
-				var result = await _dbContext.SaveChangesAsync();
-				if (result > 0)
-				{
-					await ReplyAsync("You have been successfully registered! Please set your SR using the command '!r sr SRNUMBER' and your role with '!r role'.");
-				}
-			}
-		}
-
-		[Command("sr")]
-		public async Task RegisterSR([Remainder] short rating)
-		{
-			var playerID = (long)Context.User.Id;
-			var player = await _dbContext.Players.FindAsync(playerID);
-
-			if (player == null)
-			{
-				await ReplyAsync("We could not set your SR as you are currently not registered with our application. Please use the command '**!r p**' before setting your SR.");
-				return;
-			}
-
-			await ReplyAsync($"You said {rating}");
+			await ReplyAsync(null, embed: embed).ConfigureAwait(false);
 		}
 
 		[Command("role")]
