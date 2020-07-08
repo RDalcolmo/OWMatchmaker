@@ -21,12 +21,10 @@ namespace OWMatchmaker.Modules
 	public class Commands : ModuleBase
 	{
 		private readonly OWMatchmakerContext _dbContext;
-		public IAPIHandler apiHandler;
 
-		public Commands(IAPIHandler _apiHandler, OWMatchmakerContext dbContext)
+		public Commands(OWMatchmakerContext dbContext)
 		{
 			_dbContext = dbContext;
-			apiHandler = _apiHandler;
 		}
 
 		[Command("create")]

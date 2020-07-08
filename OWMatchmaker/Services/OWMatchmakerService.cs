@@ -20,18 +20,16 @@ namespace OWMatchmaker.Services
 		private readonly DiscordSocketClient _discord;
 		private readonly CommandService _commands;
 		private IServiceProvider _provider;
-		private IAPIHandler _apiHandler;
 		private readonly OWMatchmakerContext _dbContext;
 		private readonly IConfiguration _config;
 
-		public OWMatchmakerService(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, IAPIHandler apiHandler, OWMatchmakerContext dbContext, IConfiguration config)
+		public OWMatchmakerService(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, OWMatchmakerContext dbContext, IConfiguration config)
 		{
 			_config = config;
 			_dbContext = dbContext;
 			_discord = discord;
 			_commands = commands;
 			_provider = provider;
-			_apiHandler = apiHandler;
 
 			_discord.MessageReceived += HandleCommandAsync;
 			_discord.Ready += OnReady;

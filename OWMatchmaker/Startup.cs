@@ -54,8 +54,8 @@ namespace OWMatchmaker
 			services.AddSingleton(new OWMatchmakerContext(new DbContextOptionsBuilder<OWMatchmakerContext>().UseNpgsql(Configuration["ConnectionString"]).Options));
 			services.AddSingleton(_client);
 			services.AddSingleton<CommandService>();
-			services.AddSingleton<IAPIHandler, APIHandler>();
 			services.AddSingleton<OWMatchmakerService>();
+
 			//services.AddSingleton<InteractiveService>();
 		}
 
@@ -67,10 +67,14 @@ namespace OWMatchmaker
 				await app.ApplicationServices.GetRequiredService<OWMatchmakerService>().InitializeAsync(app.ApplicationServices);
 			});
 
+			app.UseHttpsRedirection();
+
+			app.UseStaticFiles();
 			app.UseRouting();
 
 			app.UseEndpoints(endpoints => {
 				endpoints.MapControllers();
+				endpoints.MapRazorPages();
 			});
 		}
 
