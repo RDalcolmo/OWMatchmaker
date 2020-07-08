@@ -93,7 +93,7 @@ namespace OWMatchmaker.Modules
 								.WithFooter(footer => {
 									footer
 										.WithIconUrl(_config["DiscordFooterIconURL"])
-										.WithText("owmatcher.io");
+										.WithText("owmatcher.com");
 								})
 								.AddField("Registration Program", "Welcome Hero! My name is Matcher and I will guide you through this process.\nClick the link above to Authorize.");
 			var embed = builder.Build();

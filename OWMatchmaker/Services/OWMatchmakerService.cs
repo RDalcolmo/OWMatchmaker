@@ -59,7 +59,7 @@ namespace OWMatchmaker.Services
 										.WithFooter(footer => {
 											footer
 												.WithIconUrl(_config["DiscordFooterIconURL"])
-												.WithText("owmatcher.io");
+												.WithText("owmatcher.com");
 										})
 										.AddField("Registration Program", "You were too slow! The URL has expired.\nPlease input `!register` again.");
 					var embed = builder.Build();

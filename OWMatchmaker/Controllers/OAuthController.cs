@@ -29,6 +29,12 @@ namespace OWMatchmaker.Controllers
 			_config = config;
 		}
 
+		[HttpGet("{id}")]
+		public ActionResult<IEnumerable<string>> Get(int id)
+		{
+			return new string[] { "value1", "value2" };
+		}
+
 		// GET api/values/5
 		[HttpGet]
 		public async Task<IActionResult> Get([FromQuery] string code, ulong state)
@@ -73,7 +79,7 @@ namespace OWMatchmaker.Controllers
 								.WithFooter(footer => {
 									footer
 										.WithIconUrl(_config["DiscordFooterIconURL"])
-										.WithText("owmatcher.io");
+										.WithText("owmatcher.com");
 								})
 								.AddField($"Username", $"{userInfo.battletag} (Default)", true)
 								.AddField("SR", $"{userStats.Rating}\nIf you believe this value is incorrect:\n1) Verify your profile is set to public.\n2) Complete the current season's placements.\n3) Use the command `!sr` to refresh your SR.", true);
