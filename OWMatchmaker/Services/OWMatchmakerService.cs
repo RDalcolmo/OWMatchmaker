@@ -9,6 +9,8 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
 using OWMatchmaker.Models;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace OWMatchmaker.Services
 {
@@ -31,6 +33,39 @@ namespace OWMatchmaker.Services
 			_discord.MessageReceived += HandleCommandAsync;
 			_discord.Ready += OnReady;
 			_discord.ReactionAdded += OnReactionAdded;
+			DateTimeHandler.IntervalTimeElapsed += DateTimeHandler_IntervalTimeElapsed;
+		}
+
+		private async void DateTimeHandler_IntervalTimeElapsed(object sender, EventArgs e)
+		{
+			var listOfMessages = await _dbContext.RegistrationMessages.ToListAsync();
+
+			foreach (var message in listOfMessages)
+			{
+				TimeSpan span = DateTime.Now.Subtract(message.ExpiresIn.Value);
+				if (span.TotalSeconds > 0)
+				{
+					var discordUser = _discord.GetUser((ulong)message.OwnerId);
+
+					var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
+					var getMessage = (await getDMchannel.GetMessageAsync((ulong)message.MessageId)) as IUserMessage;
+
+					var builder = new EmbedBuilder()
+										.WithTitle("Link Expired")
+										.WithColor(new Color(0x9B4800))
+										.WithFooter(footer => {
+											footer
+												.WithText("owmatcher.io");
+										})
+										.AddField("Registration Program", "You were too slow! The URL has expired.\nPlease input **!r p** again.");
+					var embed = builder.Build();
+
+					await getMessage.ModifyAsync(u => u.Embed = embed);
+
+					_dbContext.RegistrationMessages.Remove(message);
+					await _dbContext.SaveChangesAsync();
+				}
+			}
 		}
 
 		private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
