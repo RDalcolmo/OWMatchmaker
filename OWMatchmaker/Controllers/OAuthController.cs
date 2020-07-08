@@ -32,6 +32,13 @@ namespace OWMatchmaker.Controllers
 		[HttpGet]
 		public async Task<IActionResult> Get([FromQuery] string code, ulong state)
 		{
+			var initializedMessage = await _dbContext.RegistrationMessages.FindAsync((long)state);
+
+			if (initializedMessage == null)
+				return BadRequest();
+
+			var userId = initializedMessage.OwnerId;
+
 			var tokenModel = await GetAccessToken(code);
 
 			if (tokenModel == null)
@@ -42,13 +49,34 @@ namespace OWMatchmaker.Controllers
 
 			var userStats = await GetOWUserRating(userInfo.battletag);
 
-			await _dbContext.Players.AddAsync(new Players() { UserId = (long)state, BattleTag = userInfo.battletag, Sr = userStats.Rating });
+			await _dbContext.Players.AddAsync(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
 			var result = await _dbContext.SaveChangesAsync();
 
 			if (result > 0)
 			{
-				var discordUser = _discord.GetUser(state);
+				var discordUser = _discord.GetUser((ulong)userId);
+					
+				var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
+				var getMessage = (await getDMchannel.GetMessageAsync((ulong)initializedMessage.MessageId)) as IUserMessage;
+
+				var builder = new EmbedBuilder()
+								.WithTitle("Registration Program")
+								.WithDescription($"Registration Successful: {userInfo.battletag}")
+								.WithColor(new Color(0x9B4800))
+								.WithFooter(footer => {
+									footer
+										.WithText("owmatcher.io");
+								})
+								.AddField($"Username", $"{userInfo.battletag} (Default)", true)
+								.AddField("SR", $"{userStats.Rating}\nIf you believe this value is incorrect:\n1) Verify your profile is set to public.\n2) Complete the current season's placements.\n3) Use the command **!r sr** to refresh your SR.", true);
+				var embed = builder.Build();
+
+				await getMessage.ModifyAsync(u => u.Embed = embed);
+
 				await discordUser.SendMessageAsync("Registration complete!");
+
+				_dbContext.RegistrationMessages.Remove(initializedMessage);
+				await _dbContext.SaveChangesAsync();
 			}
 
 			return Ok();

@@ -81,9 +81,11 @@ namespace OWMatchmaker.Modules
 		[Alias("p")]
 		public async Task RegisterPlayer()
 		{
+			var initializedMessage = await ReplyAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.");
+
 			var builder = new EmbedBuilder()
 								.WithTitle("Click Here to Register")
-								.WithUrl(_config["BlizzardOAuthURL"] + Context.User.Id)
+								.WithUrl(_config["BlizzardOAuthURL"] + initializedMessage.Id)
 								.WithColor(new Color(0x9B4800))
 								.WithFooter(footer => {
 									footer
@@ -92,46 +94,44 @@ namespace OWMatchmaker.Modules
 								.AddField("Registration Program", "Welcome Hero! My name is Matcher and I will guide you through this process.\nClick the link above to Authorize.");
 			var embed = builder.Build();
 
-
-			await ReplyAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.");
 			var messageSent = await ReplyAsync(null, embed: embed).ConfigureAwait(false);
 
-			await _dbContext.Messages.AddAsync(new Messages() { MessageId = (long)messageSent.Id, Type = 1, OwnerId = (long)Context.User.Id });
+			await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(10) });
 			await _dbContext.SaveChangesAsync();
 		}
 
-		[Command("role")]
-		public async Task RegisterRole()
-		{
-			var playerID = (long)Context.User.Id;
-			var player = await _dbContext.Players.FindAsync(playerID);
+		//[Command("role")]
+		//public async Task RegisterRole()
+		//{
+		//	var playerID = (long)Context.User.Id;
+		//	var player = await _dbContext.Players.FindAsync(playerID);
 			
-			if (player == null)
-			{
-				await ReplyAsync("We could not set your role as you are currently not registered with our application. Please use the command '**!r p**' before setting your role.");
-				return;
-			}
+		//	if (player == null)
+		//	{
+		//		await ReplyAsync("We could not set your role as you are currently not registered with our application. Please use the command '**!r p**' before setting your role.");
+		//		return;
+		//	}
 
-			var embed = new EmbedBuilder()
-								.WithTitle("Select your role:")
-								.WithDescription("🛡 **Tank**\n⚔ **DPS**\n💉 **Support**")
-								.WithColor(new Color(0x32BD27))
-								.WithTimestamp(DateTimeOffset.FromUnixTimeMilliseconds(1593910889108))
-								.WithFooter(footer =>
-								{
-									footer.WithText("OW Matcher");
-								}).Build();
-			var emotes = new[]
-			{
-				new Emoji("⚔"),
-				new Emoji("🛡"),
-				new Emoji("💉"),
-			};
-			var sent = await ReplyAsync(null, false, embed);
-			await sent.AddReactionsAsync(emotes);
+		//	var embed = new EmbedBuilder()
+		//						.WithTitle("Select your role:")
+		//						.WithDescription("🛡 **Tank**\n⚔ **DPS**\n💉 **Support**")
+		//						.WithColor(new Color(0x32BD27))
+		//						.WithTimestamp(DateTimeOffset.FromUnixTimeMilliseconds(1593910889108))
+		//						.WithFooter(footer =>
+		//						{
+		//							footer.WithText("OW Matcher");
+		//						}).Build();
+		//	var emotes = new[]
+		//	{
+		//		new Emoji("⚔"),
+		//		new Emoji("🛡"),
+		//		new Emoji("💉"),
+		//	};
+		//	var sent = await ReplyAsync(null, false, embed);
+		//	await sent.AddReactionsAsync(emotes);
 			
-			await _dbContext.Messages.AddAsync(new Messages() { MessageId = (long)sent.Id, Type = 1 });
-			await _dbContext.SaveChangesAsync();
-		}
+		//	await _dbContext.Messages.AddAsync(new Messages() { MessageId = (long)sent.Id, Type = 1 });
+		//	await _dbContext.SaveChangesAsync();
+		//}
 	}
 }

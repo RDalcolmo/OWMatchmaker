@@ -6,7 +6,6 @@ namespace OWMatchmaker.Models
 {
     public partial class OWMatchmakerContext : DbContext
     {
-            {
         private static DbContextOptions<OWMatchmakerContext> _options;
 
         public OWMatchmakerContext()
@@ -23,8 +22,7 @@ namespace OWMatchmaker.Models
         public virtual DbSet<Lobbies> Lobbies { get; set; }
         public virtual DbSet<Matches> Matches { get; set; }
         public virtual DbSet<Players> Players { get; set; }
-        public virtual DbSet<Messages> Messages { get; set; }
-
+        public virtual DbSet<RegistrationMessages> RegistrationMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -75,18 +73,6 @@ namespace OWMatchmaker.Models
                     .HasConstraintName("Matches_PlayerID_fkey");
             });
 
-            modelBuilder.Entity<Messages>(entity =>
-            {
-                entity.HasKey(e => e.MessageId)
-                    .HasName("Messages_pkey");
-
-                entity.Property(e => e.MessageId)
-                    .HasColumnName("MessageID")
-                    .ValueGeneratedNever();
-
-                entity.Property(e => e.OwnerId).HasColumnName("OwnerID");
-            });
-
             modelBuilder.Entity<Players>(entity =>
             {
                 entity.HasKey(e => e.UserId)
@@ -97,6 +83,18 @@ namespace OWMatchmaker.Models
                     .ValueGeneratedNever();
 
                 entity.Property(e => e.Sr).HasColumnName("SR");
+            });
+
+            modelBuilder.Entity<RegistrationMessages>(entity =>
+            {
+                entity.HasKey(e => e.InitializedMessageId)
+                    .HasName("RegistrationMessages_pkey");
+
+                entity.Property(e => e.MessageId).HasColumnName("MessageID");
+
+                entity.Property(e => e.InitializedMessageId).HasColumnName("InitializedMessageID").ValueGeneratedNever();
+
+                entity.Property(e => e.OwnerId).HasColumnName("OwnerID");
             });
 
             OnModelCreatingPartial(modelBuilder);

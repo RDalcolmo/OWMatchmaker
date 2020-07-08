@@ -35,41 +35,41 @@ namespace OWMatchmaker.Services
 
 		private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
 		{
-			if (arg3.User.Value.IsBot)
-				return;
+			//if (arg3.User.Value.IsBot)
+			//	return;
 			
-			var messageID = (long)arg3.MessageId;
-			var userID = (long)arg3.UserId;
-			var player = await _dbContext.Players.FindAsync(userID);
+			//var messageID = (long)arg3.MessageId;
+			//var userID = (long)arg3.UserId;
+			//var player = await _dbContext.Players.FindAsync(userID);
 
-			if (player == null)
-			{
-				await arg2.SendMessageAsync("We could not set your role as you are currently not registered with our application. Please use the command '**!r p**' before setting your role.");
-			}
+			//if (player == null)
+			//{
+			//	await arg2.SendMessageAsync("We could not set your role as you are currently not registered with our application. Please use the command '**!r p**' before setting your role.");
+			//}
 
-			var message = await _dbContext.Messages.FindAsync(messageID);
+			//var message = await _dbContext.Messages.FindAsync(messageID);
 
-			if (message.Type == 1)
-			{
-				switch (arg3.Emote.Name)
-				{
-					case "🛡":
-						await arg2.SendMessageAsync("We have set your role to Tank. To change your role, ");
-						break;
-					case "⚔":
-						await arg2.SendMessageAsync("We have set your role to DPS.");
-						break;
-					case "💉":
-						await arg2.SendMessageAsync("We have set your role to Support.");
-						break;
-					default:
-						break;
-				}
-				_dbContext.Messages.Remove(message);
-				await _dbContext.SaveChangesAsync();
+			//if (message.Type == 1)
+			//{
+			//	switch (arg3.Emote.Name)
+			//	{
+			//		case "🛡":
+			//			await arg2.SendMessageAsync("We have set your role to Tank. To change your role, ");
+			//			break;
+			//		case "⚔":
+			//			await arg2.SendMessageAsync("We have set your role to DPS.");
+			//			break;
+			//		case "💉":
+			//			await arg2.SendMessageAsync("We have set your role to Support.");
+			//			break;
+			//		default:
+			//			break;
+			//	}
+			//	_dbContext.Messages.Remove(message);
+			//	await _dbContext.SaveChangesAsync();
 
-				await arg2.DeleteMessageAsync(arg3.MessageId);
-			}
+			//	await arg2.DeleteMessageAsync(arg3.MessageId);
+			//}
 		}
 
 		private async Task OnReady()
