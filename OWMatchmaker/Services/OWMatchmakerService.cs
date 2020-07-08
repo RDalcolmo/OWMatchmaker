@@ -11,6 +11,7 @@ using Discord;
 using OWMatchmaker.Models;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Configuration;
 
 namespace OWMatchmaker.Services
 {
@@ -21,9 +22,11 @@ namespace OWMatchmaker.Services
 		private IServiceProvider _provider;
 		private IAPIHandler _apiHandler;
 		private readonly OWMatchmakerContext _dbContext;
+		private readonly IConfiguration _config;
 
-		public OWMatchmakerService(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, IAPIHandler apiHandler, OWMatchmakerContext dbContext)
+		public OWMatchmakerService(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, IAPIHandler apiHandler, OWMatchmakerContext dbContext, IConfiguration config)
 		{
+			_config = config;
 			_dbContext = dbContext;
 			_discord = discord;
 			_commands = commands;
@@ -55,9 +58,10 @@ namespace OWMatchmaker.Services
 										.WithColor(new Color(0x9B4800))
 										.WithFooter(footer => {
 											footer
+												.WithIconUrl(_config["DiscordFooterIconURL"])
 												.WithText("owmatcher.io");
 										})
-										.AddField("Registration Program", "You were too slow! The URL has expired.\nPlease input **!r p** again.");
+										.AddField("Registration Program", "You were too slow! The URL has expired.\nPlease input `!register` again.");
 					var embed = builder.Build();
 
 					await getMessage.ModifyAsync(u => u.Embed = embed);

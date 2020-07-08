@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Discord.WebSocket;
 using Discord;
+using Microsoft.EntityFrameworkCore;
 
 namespace OWMatchmaker.Controllers
 {
@@ -49,7 +50,13 @@ namespace OWMatchmaker.Controllers
 
 			var userStats = await GetOWUserRating(userInfo.battletag);
 
-			await _dbContext.Players.AddAsync(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
+			var player =  await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == userId);
+			
+			if (player == null)
+				await _dbContext.Players.AddAsync(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
+			else
+				_dbContext.Players.Update(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
+			
 			var result = await _dbContext.SaveChangesAsync();
 
 			if (result > 0)
@@ -65,10 +72,11 @@ namespace OWMatchmaker.Controllers
 								.WithColor(new Color(0x9B4800))
 								.WithFooter(footer => {
 									footer
+										.WithIconUrl(_config["DiscordFooterIconURL"])
 										.WithText("owmatcher.io");
 								})
 								.AddField($"Username", $"{userInfo.battletag} (Default)", true)
-								.AddField("SR", $"{userStats.Rating}\nIf you believe this value is incorrect:\n1) Verify your profile is set to public.\n2) Complete the current season's placements.\n3) Use the command **!r sr** to refresh your SR.", true);
+								.AddField("SR", $"{userStats.Rating}\nIf you believe this value is incorrect:\n1) Verify your profile is set to public.\n2) Complete the current season's placements.\n3) Use the command `!sr` to refresh your SR.", true);
 				var embed = builder.Build();
 
 				await getMessage.ModifyAsync(u => u.Embed = embed);
@@ -79,7 +87,7 @@ namespace OWMatchmaker.Controllers
 				await _dbContext.SaveChangesAsync();
 			}
 
-			return Ok();
+			return Ok("Registration successful, you may close this window!");
 		}
 
 		public async Task<BlizzardAccessTokenModel> GetAccessToken(string code)

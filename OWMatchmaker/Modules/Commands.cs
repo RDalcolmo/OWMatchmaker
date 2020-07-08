@@ -20,10 +20,12 @@ namespace OWMatchmaker.Modules
 	[RequireContext(ContextType.Guild)]
 	public class Commands : ModuleBase
 	{
+		private readonly OWMatchmakerContext _dbContext;
 		public IAPIHandler apiHandler;
 
-		public Commands(IAPIHandler _apiHandler)
+		public Commands(IAPIHandler _apiHandler, OWMatchmakerContext dbContext)
 		{
+			_dbContext = dbContext;
 			apiHandler = _apiHandler;
 		}
 
@@ -43,10 +45,13 @@ namespace OWMatchmaker.Modules
 		}
 	}
 
+	[Group("help")]
+	[Alias("h")]
 	public class HelpModule : ModuleBase
 	{
-		[Command("help")]
-		public async Task Help()
+		[Command("register")]
+		[Alias("r")]
+		public async Task RegistrationHelp()
 		{
 			await Context.User.SendMessageAsync(
 				"Here is a list of commands:\n" +
@@ -63,8 +68,6 @@ namespace OWMatchmaker.Modules
 		}
 	}
 
-	[Group("register")]
-	[Alias("r")]
 	[RequireContext(ContextType.DM)]
 	public class RegistrationModule : ModuleBase
 	{
@@ -77,8 +80,8 @@ namespace OWMatchmaker.Modules
 			_dbContext = dbContext;
 		}
 
-		[Command("player")]
-		[Alias("p")]
+		[Command("register")]
+		[Alias("r")]
 		public async Task RegisterPlayer()
 		{
 			var initializedMessage = await ReplyAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.");
@@ -89,6 +92,7 @@ namespace OWMatchmaker.Modules
 								.WithColor(new Color(0x9B4800))
 								.WithFooter(footer => {
 									footer
+										.WithIconUrl(_config["DiscordFooterIconURL"])
 										.WithText("owmatcher.io");
 								})
 								.AddField("Registration Program", "Welcome Hero! My name is Matcher and I will guide you through this process.\nClick the link above to Authorize.");
@@ -105,7 +109,7 @@ namespace OWMatchmaker.Modules
 		//{
 		//	var playerID = (long)Context.User.Id;
 		//	var player = await _dbContext.Players.FindAsync(playerID);
-			
+
 		//	if (player == null)
 		//	{
 		//		await ReplyAsync("We could not set your role as you are currently not registered with our application. Please use the command '**!r p**' before setting your role.");
@@ -129,7 +133,7 @@ namespace OWMatchmaker.Modules
 		//	};
 		//	var sent = await ReplyAsync(null, false, embed);
 		//	await sent.AddReactionsAsync(emotes);
-			
+
 		//	await _dbContext.Messages.AddAsync(new Messages() { MessageId = (long)sent.Id, Type = 1 });
 		//	await _dbContext.SaveChangesAsync();
 		//}
