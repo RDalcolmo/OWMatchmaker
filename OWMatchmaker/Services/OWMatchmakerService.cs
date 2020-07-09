@@ -109,14 +109,19 @@ namespace OWMatchmaker.Services
 				//Get all the players in the lobby in order to build a spectator list
 				var playersInLobby = await _dbContext.Matches.AsQueryable().Where(l => l.LobbyId == messageID).Include(p => p.Player).ToListAsync();
 				string spectators = "";
+				Role roleValue = new Role();
 				foreach (var person in playersInLobby)
 				{
-					if (person.Role == (short)Role.Tank)
-						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: Tank] | ";
-					else if (person.Role == (short)Role.DPS)
-						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: DPS] | ";
-					else if (person.Role == (short)Role.Support)
-						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: Support] | ";
+					roleValue = (Role)person.Role;
+
+					spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{roleValue}] | ";
+
+					//if (person.Role == (short)Role.Tank)
+					//	spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: {Role.Tank.ToString()}] | ";
+					//else if (person.Role == (short)Role.DPS)
+					//	spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: DPS] | ";
+					//else if (person.Role == (short)Role.Support)
+					//	spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: Support] | ";
 				}
 				
 				var matches = await _dbContext.Matches.FindAsync(userID);
@@ -134,8 +139,8 @@ namespace OWMatchmaker.Services
 							matches.Role = (short)Role.Tank;
 							_dbContext.Update(matches);
 						}
-						spectators += spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [Role: Support] | ", "");
-						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Role: Tank] | ";
+						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
+						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ";
 						break;
 					case "⚔":
 						if (matches == null)
@@ -147,7 +152,8 @@ namespace OWMatchmaker.Services
 							matches.Role = (short)Role.DPS;
 							_dbContext.Update(matches);
 						}
-						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Role: DPS] | ";
+						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
+						spectators += $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ";
 						break;
 					case "💉":
 						if (matches == null)
@@ -159,7 +165,8 @@ namespace OWMatchmaker.Services
 							matches.Role = (short)Role.Support;
 							_dbContext.Update(matches);
 						}
-						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Role: Support] | ";
+						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
+						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Support] | ";
 						break;
 					case "❌":
 						if (matches == null)
@@ -171,7 +178,10 @@ namespace OWMatchmaker.Services
 						{
 							_dbContext.Remove(matches);
 						}
-						spectators += spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [Role: Support] | ", "");
+						if (playersInLobby.Count == 1)
+							spectators = "<empty>";
+						else
+							spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
 						break;
 					default:
 						break;
