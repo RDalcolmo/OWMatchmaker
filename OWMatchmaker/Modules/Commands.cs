@@ -13,8 +13,6 @@ namespace OWMatchmaker.Modules
 {
 	[Group("lobby")]
 	[Alias("l")]
-	[RequireBotPermission(GuildPermission.ManageMessages)]
-	[RequireContext(ContextType.Guild)]
 	public class LobbyModule : ModuleBase
 	{
 		private readonly IConfiguration _config;
@@ -27,6 +25,8 @@ namespace OWMatchmaker.Modules
 		[Command("create")]
 		[Alias("c")]
 		[RequireBotPermission(GuildPermission.AddReactions)]
+		[RequireBotPermission(GuildPermission.ManageMessages)]
+		[RequireContext(ContextType.Guild)]
 		public async Task CreateLobby()
 		{
 			using (var _dbContext = new OWMatchmakerContext())
@@ -76,13 +76,14 @@ namespace OWMatchmaker.Modules
 				await _dbContext.Lobbies.AddAsync(new Lobbies() { LobbyId = (long)lobbyMessage.Id, OwnerId = (long)Context.User.Id });
 				await _dbContext.SaveChangesAsync();
 
-
 				await Context.Message.DeleteAsync();
 			}
 		}
 
 		[Command("shuffle")]
 		[Alias("s")]
+		[RequireBotPermission(GuildPermission.ManageMessages)]
+		[RequireContext(ContextType.Guild)]
 		public async Task ShuffleLobby()
 		{
 			
@@ -104,6 +105,10 @@ namespace OWMatchmaker.Modules
 					if (lobby == null)
 					{
 						await Context.User.SendMessageAsync("Command failed. You have no running lobbies.");
+
+						if (Context.Channel is IDMChannel)
+							return;
+
 						await Context.Message.DeleteAsync();
 						return;
 					}
@@ -113,8 +118,13 @@ namespace OWMatchmaker.Modules
 					if (result > 0)
 					{
 						await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.");
-						await Context.Message.DeleteAsync();
 						await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId);
+
+						if (Context.Channel is IDMChannel)
+							return;
+
+						await Context.Message.DeleteAsync();
+						
 						return;
 					}
 
@@ -142,6 +152,11 @@ namespace OWMatchmaker.Modules
 								});
 			var embed = builder.Build();
 			await ReplyAsync(embed: embed).ConfigureAwait(false);
+
+			if (Context.Channel is IDMChannel)
+				return;
+
+			await Context.Message.DeleteAsync();	
 		}
 	}
 
@@ -161,7 +176,7 @@ namespace OWMatchmaker.Modules
 		{
 			var builder = new EmbedBuilder()
 								.WithTitle("Here is a list of commands")
-								.WithDescription("`!register [Alias !r]` - Registers the player to the database. User most login using their BattleNet account.\n`!refresh` - Refreshes the user's SR. In most cases a user's SR will be 0 if their profile is not public, or they have not played a competitive game this season.\n`!lobby help [Alias !l help/h]` - Display information for creating a lobby.")
+								.WithDescription("`!register [Alias !r]` - Registers the player to the database. User most login using their BattleNet account.\n`!refresh` - Refreshes the user's SR. In most cases a user's SR will be 0 if their profile is not public, or they have not played a competitive game this season.\n`!lobby help [Alias !l help/h]` - Display information for creating a lobby. Cannot be used in a DM.")
 								.WithColor(new Color(0x9B4800))
 								.WithFooter(footer => {
 									footer
@@ -170,6 +185,10 @@ namespace OWMatchmaker.Modules
 								});
 			var embed = builder.Build();
 			await Context.User.SendMessageAsync(embed: embed).ConfigureAwait(false);
+			
+			if (Context.Channel is IDMChannel)
+				return;
+			
 			await Context.Message.DeleteAsync();
 		}
 	}
