@@ -44,6 +44,12 @@ namespace OWMatchmaker.Models
                     .ValueGeneratedNever();
 
                 entity.Property(e => e.LobbyId).HasColumnName("LobbyID");
+
+                entity.HasOne(d => d.Owner)
+                    .WithOne(p => p.Lobbies)
+                    .HasForeignKey<Lobbies>(d => d.OwnerId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .HasConstraintName("Lobbies_OwnerID_fkey");
             });
 
             modelBuilder.Entity<Matches>(entity =>
@@ -61,13 +67,13 @@ namespace OWMatchmaker.Models
                     .WithMany(p => p.Matches)
                     .HasPrincipalKey(p => p.LobbyId)
                     .HasForeignKey(d => d.LobbyId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .OnDelete(DeleteBehavior.Cascade)
                     .HasConstraintName("Matches_LobbyID_fkey");
 
                 entity.HasOne(d => d.Player)
                     .WithOne(p => p.Matches)
                     .HasForeignKey<Matches>(d => d.PlayerId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .OnDelete(DeleteBehavior.Cascade)
                     .HasConstraintName("Matches_PlayerID_fkey");
             });
 

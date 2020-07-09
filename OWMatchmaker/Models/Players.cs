@@ -9,6 +9,7 @@ namespace OWMatchmaker.Models
         public int? Sr { get; set; }
         public string BattleTag { get; set; }
 
+        public virtual Lobbies Lobbies { get; set; }
         public virtual Matches Matches { get; set; }
     }
 }

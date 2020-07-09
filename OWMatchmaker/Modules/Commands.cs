@@ -94,29 +94,35 @@ namespace OWMatchmaker.Modules
 		[Alias("e")]
 		public async Task EndLobby()
 		{
-			using (var _dbContext = new OWMatchmakerContext())
+			try
 			{
-				var lobby = await _dbContext.Lobbies.FindAsync((long)Context.User.Id);
-
-				if (lobby == null)
+				using (var _dbContext = new OWMatchmakerContext())
 				{
-					await Context.User.SendMessageAsync("Command failed. You have no running lobbies.");
-					await Context.Message.DeleteAsync();
-					return;
+					//The Include is so that we can delete all the Child keys from table Matches.
+					var lobby = await _dbContext.Lobbies.Include(x => x.Matches).FirstOrDefaultAsync(u => u.OwnerId == (long)Context.User.Id);
+
+					if (lobby == null)
+					{
+						await Context.User.SendMessageAsync("Command failed. You have no running lobbies.");
+						await Context.Message.DeleteAsync();
+						return;
+					}
+					_dbContext.Lobbies.Remove(lobby);
+					var result = await _dbContext.SaveChangesAsync();
+
+					if (result > 0)
+					{
+						await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.");
+						await Context.Message.DeleteAsync();
+						await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId);
+						return;
+					}
+
 				}
-
-				await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId);
-
-				_dbContext.Lobbies.Remove(lobby);
-				var result = await _dbContext.SaveChangesAsync();
-
-				if (result > 0)
-				{
-					await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.");
-					await Context.Message.DeleteAsync();
-					return;
-				}
-
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
 			}
 		}
 

@@ -56,12 +56,16 @@ namespace OWMatchmaker.Controllers
 
 				var userStats = await GetOWUserRating(userInfo.battletag);
 
-				var player = await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == userId);
+				var player = await _dbContext.Players.FindAsync(userId);
 
 				if (player == null)
 					await _dbContext.Players.AddAsync(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
 				else
-					_dbContext.Players.Update(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
+				{
+					player.BattleTag = userInfo.battletag;
+					player.Sr = userStats.Rating;
+					_dbContext.Players.Update(player);
+				}
 
 				var result = await _dbContext.SaveChangesAsync();
 

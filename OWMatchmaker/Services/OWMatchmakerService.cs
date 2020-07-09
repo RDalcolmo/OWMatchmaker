@@ -1,16 +1,14 @@
-﻿using OWMatchmaker.Handlers;
-using OWMatchmaker.Models;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using OWMatchmaker.Handlers;
+using OWMatchmaker.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Discord;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using Microsoft.Extensions.Configuration;
+using System.Linq;
 
 namespace OWMatchmaker.Services
 {
@@ -38,7 +36,7 @@ namespace OWMatchmaker.Services
 		{
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var listOfMessages = await _dbContext.RegistrationMessages.ToListAsync();
+				var listOfMessages = await _dbContext.RegistrationMessages.AsQueryable().ToListAsync();
 
 				foreach (var message in listOfMessages)
 				{
@@ -47,6 +45,7 @@ namespace OWMatchmaker.Services
 					{
 						var discordUser = _discord.GetUser((ulong)message.OwnerId);
 
+						//Getting the DM channel and any registration messages that need to be expired.
 						var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
 						var getMessage = (await getDMchannel.GetMessageAsync((ulong)message.MessageId)) as IUserMessage;
 
@@ -72,17 +71,131 @@ namespace OWMatchmaker.Services
 		}
 
 		private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
-		{
+		{			
+			//Prevent the bot from deleting his own reactions
 			if (arg3.User.Value.IsBot)
 				return;
 
-			await (await arg1.GetOrDownloadAsync()).RemoveReactionAsync(arg3.Emote, arg3.User.Value);
+			var message = await arg1.GetOrDownloadAsync();
+
+			//We only care if the reactions added are to the bot message.
+			if (!(message.Author.Id == _discord.CurrentUser.Id))
+				return;
 
 			var messageID = (long)arg3.MessageId;
 			var userID = (long)arg3.UserId;
+
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var player = await _dbContext.Lobbies.FindAsync(messageID);
+				//Checking if the player registered before attempting to join a lobby
+				var player = await _dbContext.Players.FindAsync(userID);
+				if (player == null)
+				{
+					await message.RemoveReactionAsync(arg3.Emote, arg3.User.Value);
+					await arg3.User.GetValueOrDefault().SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.");
+					return;
+				}
+
+				//Check if the message being reacted to is a lobby.
+				//Prevents reactions from being deleted where they shouldn't be.
+				var lobbyOwner = await _dbContext.Lobbies.Include(p => p.Owner).FirstOrDefaultAsync(u => u.LobbyId == messageID);
+
+				if (lobbyOwner == null)
+					return;
+
+				//Remove all user reactions from a Lobby message.
+				await message.RemoveReactionAsync(arg3.Emote, arg3.User.Value);
+
+				//Get all the players in the lobby in order to build a spectator list
+				var playersInLobby = await _dbContext.Matches.AsQueryable().Where(l => l.LobbyId == messageID).Include(p => p.Player).ToListAsync();
+				string spectators = "";
+				foreach (var person in playersInLobby)
+				{
+					if (person.Role == (short)Role.Tank)
+						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: Tank] | ";
+					else if (person.Role == (short)Role.DPS)
+						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: DPS] | ";
+					else if (person.Role == (short)Role.Support)
+						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: Support] | ";
+				}
+				
+				var matches = await _dbContext.Matches.FindAsync(userID);
+				int result = 0;
+
+				switch (arg3.Emote.Name)
+				{
+					case "🛡":
+						if (matches == null)
+						{
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Tank });
+						}
+						else
+						{
+							matches.Role = (short)Role.Tank;
+							_dbContext.Update(matches);
+						}
+						spectators += spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [Role: Support] | ", "");
+						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Role: Tank] | ";
+						break;
+					case "⚔":
+						if (matches == null)
+						{
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.DPS });
+						}
+						else
+						{
+							matches.Role = (short)Role.DPS;
+							_dbContext.Update(matches);
+						}
+						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Role: DPS] | ";
+						break;
+					case "💉":
+						if (matches == null)
+						{
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Support });
+						}
+						else
+						{
+							matches.Role = (short)Role.Support;
+							_dbContext.Update(matches);
+						}
+						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Role: Support] | ";
+						break;
+					case "❌":
+						if (matches == null)
+						{
+							//Do nothing?? The player technically isn't in the lobby to begin with.
+							//However, we might want to play around with how we want to set the player's priority in getting a game, here.
+						}
+						else
+						{
+							_dbContext.Remove(matches);
+						}
+						spectators += spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [Role: Support] | ", "");
+						break;
+					default:
+						break;
+				}
+
+				result = await _dbContext.SaveChangesAsync();
+				if (result > 0)
+				{
+					var builder = new EmbedBuilder()
+									.WithTitle($"Lobby Owner: {lobbyOwner.Owner.BattleTag}")
+									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
+									.WithColor(new Color(0x9B4800))
+									.WithFooter(footer => {
+										footer
+											.WithText("owmatcher.com")
+											.WithIconUrl(_config["DiscordFooterIconURL"]);
+									})
+									.AddField("Spectators", spectators)
+									.AddField("Team 1", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true)
+									.AddField("Team 2", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true);
+					var embed = builder.Build();
+
+					await ((await arg2.GetMessageAsync((ulong)messageID)) as IUserMessage).ModifyAsync(u => u.Embed = embed);
+				}
 			}
 			
 
