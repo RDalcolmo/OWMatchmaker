@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
-using OWMatchmaker.Models;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Configuration;
@@ -74,12 +73,18 @@ namespace OWMatchmaker.Services
 
 		private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
 		{
-			//if (arg3.User.Value.IsBot)
-			//	return;
+			if (arg3.User.Value.IsBot)
+				return;
+
+			await (await arg1.GetOrDownloadAsync()).RemoveReactionAsync(arg3.Emote, arg3.User.Value);
+
+			var messageID = (long)arg3.MessageId;
+			var userID = (long)arg3.UserId;
+			using (var _dbContext = new OWMatchmakerContext())
+			{
+				var player = await _dbContext.Lobbies.FindAsync(messageID);
+			}
 			
-			//var messageID = (long)arg3.MessageId;
-			//var userID = (long)arg3.UserId;
-			//var player = await _dbContext.Players.FindAsync(userID);
 
 			//if (player == null)
 			//{

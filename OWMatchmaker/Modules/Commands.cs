@@ -15,11 +15,13 @@ namespace OWMatchmaker.Modules
 	[Alias("l")]
 	[RequireBotPermission(GuildPermission.ManageMessages)]
 	[RequireContext(ContextType.Guild)]
-	public class Commands : ModuleBase
+	public class LobbyModule : ModuleBase
 	{
-		public Commands()
+		private readonly IConfiguration _config;
+
+		public LobbyModule(IConfiguration config)
 		{
-			
+			_config = config;
 		}
 
 		[Command("create")]
@@ -27,37 +29,142 @@ namespace OWMatchmaker.Modules
 		[RequireBotPermission(GuildPermission.AddReactions)]
 		public async Task CreateLobby()
 		{
+			using (var _dbContext = new OWMatchmakerContext())
+			{
+				var player = await _dbContext.Players.FindAsync((long)Context.User.Id);
+				
+				if (player == null)
+				{
+					await Context.User.SendMessageAsync("In order to create a lobby, you must connect your BattleNet account with our service. Please type `!register` to begin the process.");
+					await Context.Message.DeleteAsync();
+					return;
+				}
 
+				var lobby = await _dbContext.Lobbies.FindAsync((long)Context.User.Id);
+				
+				if (lobby != null)
+				{
+					await Context.User.SendMessageAsync("You already have a lobby running. Please use the command `!lobby end` before creating a new one.");
+					await Context.Message.DeleteAsync();
+					return;
+				}
+
+				var builder = new EmbedBuilder()
+									.WithTitle($"Lobby Owner: {player.BattleTag}")
+									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
+									.WithColor(new Color(0x9B4800))
+									.WithFooter(footer => {
+										footer
+											.WithText("owmatcher.com")
+											.WithIconUrl(_config["DiscordFooterIconURL"]);
+									})
+									.AddField("Spectators", "<empty>")
+									.AddField("Team 1", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true)
+									.AddField("Team 2", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true);
+				var embed = builder.Build();
+				var lobbyMessage = await ReplyAsync(embed: embed).ConfigureAwait(false);
+
+				var emotes = new[]
+				{
+					new Emoji("🛡"),
+					new Emoji("⚔"),
+					new Emoji("💉"),
+					new Emoji("❌"),
+				};
+				await lobbyMessage.AddReactionsAsync(emotes);
+
+				await _dbContext.Lobbies.AddAsync(new Lobbies() { LobbyId = (long)lobbyMessage.Id, OwnerId = (long)Context.User.Id });
+				await _dbContext.SaveChangesAsync();
+
+
+				await Context.Message.DeleteAsync();
+			}
 		}
 
 		[Command("shuffle")]
 		[Alias("s")]
 		public async Task ShuffleLobby()
 		{
+			
 
+			
+		}
+
+		[Command("end")]
+		[Alias("e")]
+		public async Task EndLobby()
+		{
+			using (var _dbContext = new OWMatchmakerContext())
+			{
+				var lobby = await _dbContext.Lobbies.FindAsync((long)Context.User.Id);
+
+				if (lobby == null)
+				{
+					await Context.User.SendMessageAsync("Command failed. You have no running lobbies.");
+					await Context.Message.DeleteAsync();
+					return;
+				}
+
+				await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId);
+
+				_dbContext.Lobbies.Remove(lobby);
+				var result = await _dbContext.SaveChangesAsync();
+
+				if (result > 0)
+				{
+					await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.");
+					await Context.Message.DeleteAsync();
+					return;
+				}
+
+			}
+		}
+
+
+		[Command("help")]
+		[Alias("h")]
+		public async Task HelpLobby()
+		{
+			var builder = new EmbedBuilder()
+								.WithTitle("Here is a list of commands")
+								.WithDescription("`!lobby create [Alias !l c]` - Creates a lobby. You may only have one lobby open at a time. The cap of players that can join is 24.\n`!lobby end [Alias !l e]` - Ends a lobby session. Use this when you're done hosting a lobby.\n`!lobby shuffle [Alias !l s]` - Shuffles a lobby. There must be at least 12 players in the lobby before executing the shuffle command.")
+								.WithColor(new Color(0x9B4800))
+								.WithFooter(footer => {
+									footer
+										.WithText("owmatcher.com")
+										.WithIconUrl(_config["DiscordFooterIconURL"]);
+								});
+			var embed = builder.Build();
+			await ReplyAsync(embed: embed).ConfigureAwait(false);
 		}
 	}
 
-	[Group("help")]
-	[Alias("h")]
+	
 	public class HelpModule : ModuleBase
 	{
-		[Command("register")]
-		[Alias("r")]
-		public async Task RegistrationHelp()
+		private readonly IConfiguration _config;
+
+		public HelpModule(IConfiguration config)
 		{
-			await Context.User.SendMessageAsync(
-				"Here is a list of commands:\n" +
-				"```\n" +
-				"ADMIN COMMANDS:\n\n" +
-				"!bcast set - Assigns the current channel to the broadcasting list.\n" +
-				"!bcast remove - Removes the bot from broadcasting to the guild.\n" +
-				"```\n" +
-				"```\n" +
-				"USER COMMANDS:\n\n" +
-				"!bday next - Broadcast a list of birthdays within the next 14 days.\n" +
-				"```"
-				);
+			_config = config;
+		}
+
+		[Command("help")]
+		[Alias("h")]
+		public async Task HelpCommand()
+		{
+			var builder = new EmbedBuilder()
+								.WithTitle("Here is a list of commands")
+								.WithDescription("`!register [Alias !r]` - Registers the player to the database. User most login using their BattleNet account.\n`!refresh` - Refreshes the user's SR. In most cases a user's SR will be 0 if their profile is not public, or they have not played a competitive game this season.\n`!lobby help [Alias !l help/h]` - Display information for creating a lobby.")
+								.WithColor(new Color(0x9B4800))
+								.WithFooter(footer => {
+									footer
+										.WithText("owmatcher.com")
+										.WithIconUrl(_config["DiscordFooterIconURL"]);
+								});
+			var embed = builder.Build();
+			await Context.User.SendMessageAsync(embed: embed).ConfigureAwait(false);
+			await Context.Message.DeleteAsync();
 		}
 	}
 
@@ -89,11 +196,11 @@ namespace OWMatchmaker.Modules
 								.AddField("Registration Program", "Welcome Hero! My name is Matcher and I will guide you through this process.\nClick the link above to Authorize.");
 			var embed = builder.Build();
 
-			var messageSent = await ReplyAsync(null, embed: embed).ConfigureAwait(false);
+			var messageSent = await ReplyAsync(embed: embed).ConfigureAwait(false);
 
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(10) });
+				await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(5) });
 				await _dbContext.SaveChangesAsync();
 			}
 		}

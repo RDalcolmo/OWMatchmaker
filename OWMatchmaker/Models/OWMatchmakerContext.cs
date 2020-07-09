@@ -39,17 +39,11 @@ namespace OWMatchmaker.Models
                     .HasName("Lobbies_LobbyID_key")
                     .IsUnique();
 
-                entity.HasIndex(e => e.MessageId)
-                    .HasName("Lobbies_MessageID_key")
-                    .IsUnique();
-
                 entity.Property(e => e.OwnerId)
                     .HasColumnName("OwnerID")
                     .ValueGeneratedNever();
 
                 entity.Property(e => e.LobbyId).HasColumnName("LobbyID");
-
-                entity.Property(e => e.MessageId).HasColumnName("MessageID");
             });
 
             modelBuilder.Entity<Matches>(entity =>
