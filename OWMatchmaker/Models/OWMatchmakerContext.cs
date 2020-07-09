@@ -6,23 +6,27 @@ namespace OWMatchmaker.Models
 {
     public partial class OWMatchmakerContext : DbContext
     {
-        private static DbContextOptions<OWMatchmakerContext> _options;
-
         public OWMatchmakerContext()
-            : base(_options)
         {
         }
 
         public OWMatchmakerContext(DbContextOptions<OWMatchmakerContext> options)
             : base(options)
         {
-            _options = options;
         }
 
         public virtual DbSet<Lobbies> Lobbies { get; set; }
         public virtual DbSet<Matches> Matches { get; set; }
         public virtual DbSet<Players> Players { get; set; }
         public virtual DbSet<RegistrationMessages> RegistrationMessages { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseNpgsql(Startup.Configuration["ConnectionString"]);
+            }
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -90,9 +94,11 @@ namespace OWMatchmaker.Models
                 entity.HasKey(e => e.InitializedMessageId)
                     .HasName("RegistrationMessages_pkey");
 
-                entity.Property(e => e.MessageId).HasColumnName("MessageID");
+                entity.Property(e => e.InitializedMessageId)
+                    .HasColumnName("InitializedMessageID")
+                    .ValueGeneratedNever();
 
-                entity.Property(e => e.InitializedMessageId).HasColumnName("InitializedMessageID").ValueGeneratedNever();
+                entity.Property(e => e.MessageId).HasColumnName("MessageID");
 
                 entity.Property(e => e.OwnerId).HasColumnName("OwnerID");
             });

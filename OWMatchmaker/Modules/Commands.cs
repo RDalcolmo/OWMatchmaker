@@ -1,16 +1,13 @@
-﻿using System;
+﻿using Discord;
+using Discord.Commands;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using OWMatchmaker.Controllers;
+using OWMatchmaker.Models;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using OWMatchmaker.Models;
-using Discord.Commands;
-using OWMatchmaker.Handlers;
-using Discord;
-using Discord.Addons.Interactive;
-using Microsoft.EntityFrameworkCore;
-using System.Globalization;
-using System.Reflection;
-using OWMatchmaker.Models;
-using Microsoft.Extensions.Configuration;
 
 namespace OWMatchmaker.Modules
 {
@@ -20,11 +17,9 @@ namespace OWMatchmaker.Modules
 	[RequireContext(ContextType.Guild)]
 	public class Commands : ModuleBase
 	{
-		private readonly OWMatchmakerContext _dbContext;
-
-		public Commands(OWMatchmakerContext dbContext)
+		public Commands()
 		{
-			_dbContext = dbContext;
+			
 		}
 
 		[Command("create")]
@@ -69,13 +64,11 @@ namespace OWMatchmaker.Modules
 	[RequireContext(ContextType.DM)]
 	public class RegistrationModule : ModuleBase
 	{
-		private readonly OWMatchmakerContext _dbContext;
 		private readonly IConfiguration _config;
 
-		public RegistrationModule(IConfiguration config, OWMatchmakerContext dbContext)
+		public RegistrationModule(IConfiguration config)
 		{
 			_config = config;
-			_dbContext = dbContext;
 		}
 
 		[Command("register")]
@@ -98,8 +91,39 @@ namespace OWMatchmaker.Modules
 
 			var messageSent = await ReplyAsync(null, embed: embed).ConfigureAwait(false);
 
-			await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(10) });
-			await _dbContext.SaveChangesAsync();
+			using (var _dbContext = new OWMatchmakerContext())
+			{
+				await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(10) });
+				await _dbContext.SaveChangesAsync();
+			}
+		}
+
+		[Command("refresh")]
+		public async Task RefreshStats()
+		{
+			using (var _dbContext = new OWMatchmakerContext())
+			{
+				var player = await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == (long)Context.User.Id);
+				var message = await ReplyAsync("Synchronizing your SR, please wait...");
+				if (player == null)
+				{
+					await ReplyAsync("I'm sorry but unfortunately I couldn't find a registered BattleTag. Please register `!register`.");
+					return;
+				}
+
+				OAuthController controller = new OAuthController(_config, null);
+
+				var playerStats = await controller.GetOWUserRating(player.BattleTag);
+				player.Sr = playerStats.Rating;
+
+				_dbContext.Players.Update(player);
+				var result = await _dbContext.SaveChangesAsync();
+
+				if (result > 0)
+				{
+					await message.ModifyAsync(u => u.Content = $"Your SR has been set to `{player.Sr}`, if you believe that this is wrong, please ensure your profile is set to public and the current season's placements have been played. In addition, there may be some delay for the data to update.");
+				}
+			}
 		}
 
 		//[Command("role")]

@@ -19,13 +19,11 @@ namespace OWMatchmaker.Controllers
 	public class OAuthController : ControllerBase
 	{
 		private readonly IConfiguration _config;
-		private readonly OWMatchmakerContext _dbContext;
 		private readonly DiscordSocketClient _discord;
 
-		public OAuthController(IConfiguration config, OWMatchmakerContext dbContext, DiscordSocketClient discord)
+		public OAuthController(IConfiguration config, DiscordSocketClient discord)
 		{
 			_discord = discord;
-			_dbContext = dbContext;
 			_config = config;
 		}
 
@@ -39,58 +37,62 @@ namespace OWMatchmaker.Controllers
 		[HttpGet]
 		public async Task<IActionResult> Get([FromQuery] string code, ulong state)
 		{
-			var initializedMessage = await _dbContext.RegistrationMessages.FindAsync((long)state);
-
-			if (initializedMessage == null)
-				return BadRequest();
-
-			var userId = initializedMessage.OwnerId;
-
-			var tokenModel = await GetAccessToken(code);
-
-			if (tokenModel == null)
-				return BadRequest();
-
-			var userInfo = await GetUserInfo(tokenModel.access_token);
-			userInfo.battletag = userInfo.battletag.Replace("#", "-");
-
-			var userStats = await GetOWUserRating(userInfo.battletag);
-
-			var player =  await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == userId);
-			
-			if (player == null)
-				await _dbContext.Players.AddAsync(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
-			else
-				_dbContext.Players.Update(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
-			
-			var result = await _dbContext.SaveChangesAsync();
-
-			if (result > 0)
+			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var discordUser = _discord.GetUser((ulong)userId);
-					
-				var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
-				var getMessage = (await getDMchannel.GetMessageAsync((ulong)initializedMessage.MessageId)) as IUserMessage;
+				var initializedMessage = await _dbContext.RegistrationMessages.FindAsync((long)state);
 
-				var builder = new EmbedBuilder()
-								.WithTitle("Registration Program")
-								.WithDescription($"Registration Successful: {userInfo.battletag}")
-								.WithColor(new Color(0x9B4800))
-								.WithFooter(footer => {
-									footer
-										.WithIconUrl(_config["DiscordFooterIconURL"])
-										.WithText("owmatcher.com");
-								})
-								.AddField($"Username", $"{userInfo.battletag} (Default)", true)
-								.AddField("SR", $"{userStats.Rating}\nIf you believe this value is incorrect:\n1) Verify your profile is set to public.\n2) Complete the current season's placements.\n3) Use the command `!sr` to refresh your SR.", true);
-				var embed = builder.Build();
+				if (initializedMessage == null)
+					return BadRequest();
 
-				await getMessage.ModifyAsync(u => u.Embed = embed);
+				var userId = initializedMessage.OwnerId;
 
-				await discordUser.SendMessageAsync("Registration complete!");
+				var tokenModel = await GetAccessToken(code);
 
-				_dbContext.RegistrationMessages.Remove(initializedMessage);
-				await _dbContext.SaveChangesAsync();
+				if (tokenModel == null)
+					return BadRequest();
+
+				var userInfo = await GetUserInfo(tokenModel.access_token);
+				userInfo.battletag = userInfo.battletag.Replace("#", "-");
+
+				var userStats = await GetOWUserRating(userInfo.battletag);
+
+				var player = await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == userId);
+
+				if (player == null)
+					await _dbContext.Players.AddAsync(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
+				else
+					_dbContext.Players.Update(new Players() { UserId = userId, BattleTag = userInfo.battletag, Sr = userStats.Rating });
+
+				var result = await _dbContext.SaveChangesAsync();
+
+				if (result > 0)
+				{
+					var discordUser = _discord.GetUser((ulong)userId);
+
+					var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
+					var getMessage = (await getDMchannel.GetMessageAsync((ulong)initializedMessage.MessageId)) as IUserMessage;
+
+					var builder = new EmbedBuilder()
+									.WithTitle("Registration Program")
+									.WithDescription($"Registration Successful: {userInfo.battletag}")
+									.WithColor(new Color(0x9B4800))
+									.WithFooter(footer =>
+									{
+										footer
+											.WithIconUrl(_config["DiscordFooterIconURL"])
+											.WithText("owmatcher.com");
+									})
+									.AddField($"Username", $"{userInfo.battletag} (Default)", true)
+									.AddField("SR", $"{userStats.Rating}\nIf you believe this value is incorrect:\n1) Verify your profile is set to public.\n2) Complete the current season's placements.\n3) Use the command `!refresh` to refresh your SR.", true);
+					var embed = builder.Build();
+
+					await getMessage.ModifyAsync(u => u.Embed = embed);
+
+					await discordUser.SendMessageAsync("Registration complete!");
+
+					_dbContext.RegistrationMessages.Remove(initializedMessage);
+					await _dbContext.SaveChangesAsync();
+				}
 			}
 
 			return Ok("Registration successful, you may close this window!");

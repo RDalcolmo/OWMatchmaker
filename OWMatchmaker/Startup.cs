@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
-using OWMatchmaker.Handlers;
-using OWMatchmaker.Services;
-using Discord;
-using Discord.Addons.Interactive;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OWMatchmaker.Models;
-using Microsoft.EntityFrameworkCore;
-using OWMatchmaker.Models;
+using OWMatchmaker.Services;
+using System;
+using System.Threading.Tasks;
 
 namespace OWMatchmaker
 {
@@ -23,7 +17,7 @@ namespace OWMatchmaker
 	{
 		private readonly DiscordSocketClient _client;
 
-		public IConfiguration Configuration { get; set; }
+		public static IConfiguration Configuration { get; set; }
 
 		public Startup(IConfiguration configuration)
 		{
@@ -51,7 +45,6 @@ namespace OWMatchmaker
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services.AddRazorPages();
-			services.AddSingleton(new OWMatchmakerContext(new DbContextOptionsBuilder<OWMatchmakerContext>().UseNpgsql(Configuration["ConnectionString"]).Options));
 			services.AddSingleton(_client);
 			services.AddSingleton<CommandService>();
 			services.AddSingleton<OWMatchmakerService>();

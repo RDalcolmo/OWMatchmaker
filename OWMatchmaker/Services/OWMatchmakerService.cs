@@ -20,13 +20,11 @@ namespace OWMatchmaker.Services
 		private readonly DiscordSocketClient _discord;
 		private readonly CommandService _commands;
 		private IServiceProvider _provider;
-		private readonly OWMatchmakerContext _dbContext;
 		private readonly IConfiguration _config;
 
-		public OWMatchmakerService(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, OWMatchmakerContext dbContext, IConfiguration config)
+		public OWMatchmakerService(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, IConfiguration config)
 		{
 			_config = config;
-			_dbContext = dbContext;
 			_discord = discord;
 			_commands = commands;
 			_provider = provider;
@@ -39,33 +37,37 @@ namespace OWMatchmaker.Services
 
 		private async void DateTimeHandler_IntervalTimeElapsed(object sender, EventArgs e)
 		{
-			var listOfMessages = await _dbContext.RegistrationMessages.ToListAsync();
-
-			foreach (var message in listOfMessages)
+			using (var _dbContext = new OWMatchmakerContext())
 			{
-				TimeSpan span = DateTime.Now.Subtract(message.ExpiresIn.Value);
-				if (span.TotalSeconds > 0)
+				var listOfMessages = await _dbContext.RegistrationMessages.ToListAsync();
+
+				foreach (var message in listOfMessages)
 				{
-					var discordUser = _discord.GetUser((ulong)message.OwnerId);
+					TimeSpan span = DateTime.Now.Subtract(message.ExpiresIn.Value);
+					if (span.TotalSeconds > 0)
+					{
+						var discordUser = _discord.GetUser((ulong)message.OwnerId);
 
-					var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
-					var getMessage = (await getDMchannel.GetMessageAsync((ulong)message.MessageId)) as IUserMessage;
+						var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
+						var getMessage = (await getDMchannel.GetMessageAsync((ulong)message.MessageId)) as IUserMessage;
 
-					var builder = new EmbedBuilder()
-										.WithTitle("Link Expired")
-										.WithColor(new Color(0x9B4800))
-										.WithFooter(footer => {
-											footer
-												.WithIconUrl(_config["DiscordFooterIconURL"])
-												.WithText("owmatcher.com");
-										})
-										.AddField("Registration Program", "You were too slow! The URL has expired.\nPlease input `!register` again.");
-					var embed = builder.Build();
+						var builder = new EmbedBuilder()
+											.WithTitle("Link Expired")
+											.WithColor(new Color(0x9B4800))
+											.WithFooter(footer =>
+											{
+												footer
+													.WithIconUrl(_config["DiscordFooterIconURL"])
+													.WithText("owmatcher.com");
+											})
+											.AddField("Registration Program", "You were too slow! The URL has expired.\nPlease input `!register` again.");
+						var embed = builder.Build();
 
-					await getMessage.ModifyAsync(u => u.Embed = embed);
+						await getMessage.ModifyAsync(u => u.Embed = embed);
 
-					_dbContext.RegistrationMessages.Remove(message);
-					await _dbContext.SaveChangesAsync();
+						_dbContext.RegistrationMessages.Remove(message);
+						await _dbContext.SaveChangesAsync();
+					}
 				}
 			}
 		}
