@@ -29,7 +29,7 @@ namespace OWMatchmaker.Services
 			_discord.MessageReceived += HandleCommandAsync;
 			_discord.Ready += OnReady;
 			_discord.ReactionAdded += OnReactionAdded;
-			DateTimeHandler.IntervalTimeElapsed += DateTimeHandler_IntervalTimeElapsed;
+			RegistrationMessageTimeHandler.IntervalTimeElapsed += DateTimeHandler_IntervalTimeElapsed;
 		}
 
 		private async void DateTimeHandler_IntervalTimeElapsed(object sender, EventArgs e)
@@ -115,13 +115,6 @@ namespace OWMatchmaker.Services
 					roleValue = (Role)person.Role;
 
 					spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{roleValue}] | ";
-
-					//if (person.Role == (short)Role.Tank)
-					//	spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: {Role.Tank.ToString()}] | ";
-					//else if (person.Role == (short)Role.DPS)
-					//	spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: DPS] | ";
-					//else if (person.Role == (short)Role.Support)
-					//	spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [Role: Support] | ";
 				}
 				
 				var matches = await _dbContext.Matches.FindAsync(userID);
@@ -204,7 +197,7 @@ namespace OWMatchmaker.Services
 									.AddField("Team 2", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true);
 					var embed = builder.Build();
 
-					await ((await arg2.GetMessageAsync((ulong)messageID)) as IUserMessage).ModifyAsync(u => u.Embed = embed);
+					await message.ModifyAsync(u => u.Embed = embed);
 				}
 			}
 			

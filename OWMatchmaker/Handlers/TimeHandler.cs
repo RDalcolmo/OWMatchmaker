@@ -7,11 +7,11 @@ using System.Timers;
 
 namespace OWMatchmaker.Handlers
 {
-	public class DateTimeHandler
+	public class RegistrationMessageTimeHandler
 	{
 		private static readonly Timer timer;
 
-		static DateTimeHandler()
+		static RegistrationMessageTimeHandler()
 		{
 			timer = new Timer(TimeSpan.FromMinutes(5).TotalMilliseconds);
 			timer.AutoReset = true;
