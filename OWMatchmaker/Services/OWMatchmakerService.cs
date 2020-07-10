@@ -27,7 +27,6 @@ namespace OWMatchmaker.Services
 			_provider = provider;
 
 			_discord.MessageReceived += HandleCommandAsync;
-			_discord.Ready += OnReady;
 			_discord.ReactionAdded += OnReactionAdded;
 			RegistrationMessageTimeHandler.IntervalTimeElapsed += DateTimeHandler_IntervalTimeElapsed;
 		}
@@ -71,9 +70,10 @@ namespace OWMatchmaker.Services
 		}
 
 		private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
-		{			
+		{
 			//Prevent the bot from deleting his own reactions
-			if (arg3.User.Value.IsBot)
+			var reactedUser = arg3.User.GetValueOrDefault();
+			if (reactedUser.IsBot)
 				return;
 
 			var message = await arg1.GetOrDownloadAsync();
@@ -91,8 +91,8 @@ namespace OWMatchmaker.Services
 				var player = await _dbContext.Players.FindAsync(userID);
 				if (player == null)
 				{
-					await message.RemoveReactionAsync(arg3.Emote, arg3.User.Value);
-					await arg3.User.GetValueOrDefault().SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.");
+					await message.RemoveReactionAsync(arg3.Emote, reactedUser);
+					await reactedUser.SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.");
 					return;
 				}
 
@@ -104,7 +104,7 @@ namespace OWMatchmaker.Services
 					return;
 
 				//Remove all user reactions from a Lobby message.
-				await message.RemoveReactionAsync(arg3.Emote, arg3.User.Value);
+				await message.RemoveReactionAsync(arg3.Emote, reactedUser);
 
 				//Get all the players in the lobby in order to build a spectator list
 				var playersInLobby = await _dbContext.Matches.AsQueryable().Where(l => l.LobbyId == messageID).Include(p => p.Player).ToListAsync();
@@ -200,43 +200,6 @@ namespace OWMatchmaker.Services
 					await message.ModifyAsync(u => u.Embed = embed);
 				}
 			}
-			
-
-			//if (player == null)
-			//{
-			//	await arg2.SendMessageAsync("We could not set your role as you are currently not registered with our application. Please use the command '**!r p**' before setting your role.");
-			//}
-
-			//var message = await _dbContext.Messages.FindAsync(messageID);
-
-			//if (message.Type == 1)
-			//{
-			//	switch (arg3.Emote.Name)
-			//	{
-			//		case "🛡":
-			//			await arg2.SendMessageAsync("We have set your role to Tank. To change your role, ");
-			//			break;
-			//		case "⚔":
-			//			await arg2.SendMessageAsync("We have set your role to DPS.");
-			//			break;
-			//		case "💉":
-			//			await arg2.SendMessageAsync("We have set your role to Support.");
-			//			break;
-			//		default:
-			//			break;
-			//	}
-			//	_dbContext.Messages.Remove(message);
-			//	await _dbContext.SaveChangesAsync();
-
-			//	await arg2.DeleteMessageAsync(arg3.MessageId);
-			//}
-		}
-
-		private async Task OnReady()
-		{
-			Console.WriteLine("Bot is ready");
-			//var user = _discord.GetUser(236922795781521410);
-			//await user.SendMessageAsync("Bitch");
 		}
 
 		public async Task InitializeAsync(IServiceProvider provider)

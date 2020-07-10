@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OWMatchmaker.Models;
 using OWMatchmaker.Services;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace OWMatchmaker
@@ -27,6 +28,7 @@ namespace OWMatchmaker
 			{
 				// How much logging do you want to see?
 				LogLevel = LogSeverity.Info,
+				
 				//MessageCacheSize = 50,
 			});
 
@@ -38,6 +40,7 @@ namespace OWMatchmaker
 				// Login and connect.
 				await _client.LoginAsync(TokenType.Bot, Configuration["BotToken"]);
 				await _client.StartAsync();
+				await _client.SetGameAsync(Configuration["BotStatus"]);
 			});
 		}
 
