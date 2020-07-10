@@ -9,6 +9,7 @@ namespace OWMatchmaker.Models
         public long PlayerId { get; set; }
         public int MatchesPlayed { get; set; }
         public short Role { get; set; }
+        public short Team { get; set; }
 
         public virtual Lobbies Lobby { get; set; }
         public virtual Players Player { get; set; }
