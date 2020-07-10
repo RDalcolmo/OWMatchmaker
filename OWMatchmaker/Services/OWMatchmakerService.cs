@@ -97,27 +97,26 @@ namespace OWMatchmaker.Services
 				}
 
 				//Check if the message being reacted to is a lobby.
+				//Get all the players in the lobby in order to build a spectator list.
+				//Gets the players informations within the lobby.
 				//Prevents reactions from being deleted where they shouldn't be.
-				var lobbyOwner = await _dbContext.Lobbies.Include(p => p.Owner).FirstOrDefaultAsync(u => u.LobbyId == messageID);
-
-				if (lobbyOwner == null)
+				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).FirstOrDefaultAsync(u => u.LobbyId == messageID);
+				if (lobby == null)
 					return;
 
 				//Remove all user reactions from a Lobby message.
 				await message.RemoveReactionAsync(arg3.Emote, reactedUser);
 
-				//Get all the players in the lobby in order to build a spectator list
-				var playersInLobby = await _dbContext.Matches.AsQueryable().Where(l => l.LobbyId == messageID).Include(p => p.Player).ToListAsync();
+				
 				string spectators = "";
 				Role roleValue = new Role();
-				foreach (var person in playersInLobby)
+				foreach (var person in lobby.Matches)
 				{
 					roleValue = (Role)person.Role;
 
 					spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{roleValue}] | ";
 				}
-				
-				var matches = await _dbContext.Matches.FindAsync(userID);
+				var matches = lobby.Matches.FirstOrDefault(u => u.PlayerId == userID);
 				int result = 0;
 
 				switch (arg3.Emote.Name)
@@ -171,7 +170,7 @@ namespace OWMatchmaker.Services
 						{
 							_dbContext.Remove(matches);
 						}
-						if (playersInLobby.Count == 1)
+						if (lobby.Matches.Count == 1)
 							spectators = "<empty>";
 						else
 							spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
@@ -184,7 +183,7 @@ namespace OWMatchmaker.Services
 				if (result > 0)
 				{
 					var builder = new EmbedBuilder()
-									.WithTitle($"Lobby Owner: {lobbyOwner.Owner.BattleTag}")
+									.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag}")
 									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
 									.WithColor(new Color(0x9B4800))
 									.WithFooter(footer => {
