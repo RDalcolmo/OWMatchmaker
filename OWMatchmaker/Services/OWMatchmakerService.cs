@@ -233,7 +233,7 @@ namespace OWMatchmaker.Services
 				if (result > 0)
 				{
 					var builder = new EmbedBuilder()
-									.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag}")
+									.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag} | Slots Open: {24 - lobby.Matches.Count}")
 									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
 									.WithColor(new Color(0x9B4800))
 									.WithFooter(footer => {

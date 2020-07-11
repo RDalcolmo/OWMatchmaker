@@ -51,7 +51,7 @@ namespace OWMatchmaker.Modules
 				}
 
 				var builder = new EmbedBuilder()
-									.WithTitle($"Lobby Owner: {player.BattleTag}")
+									.WithTitle($"Lobby Owner: {player.BattleTag} | Slots Open: 24")
 									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
 									.WithColor(new Color(0x9B4800))
 									.WithFooter(footer => {
@@ -124,7 +124,7 @@ namespace OWMatchmaker.Modules
 
 
 				var builder = new EmbedBuilder()
-									.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag}")
+									.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag} | Slots Open: {24 - lobby.Matches.Count}")
 									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
 									.WithColor(new Color(0x9B4800))
 									.WithFooter(footer => {
