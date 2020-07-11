@@ -87,27 +87,34 @@ namespace OWMatchmaker.Services
 
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				//Checking if the player registered before attempting to join a lobby
-				var player = await _dbContext.Players.FindAsync(userID);
-				if (player == null)
-				{
-					await message.RemoveReactionAsync(arg3.Emote, reactedUser);
-					await reactedUser.SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.");
-					return;
-				}
-
 				//Check if the message being reacted to is a lobby.
 				//Get all the players in the lobby in order to build a spectator list.
 				//Gets the players informations within the lobby.
 				//Prevents reactions from being deleted where they shouldn't be.
 				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).FirstOrDefaultAsync(u => u.LobbyId == messageID);
+				var matches = lobby.Matches.FirstOrDefault(u => u.PlayerId == userID);
+
 				if (lobby == null)
 					return;
 
 				//Remove all user reactions from a Lobby message.
 				await message.RemoveReactionAsync(arg3.Emote, reactedUser);
 
-				
+				//Check if the lobby is full
+				if (lobby.Matches.Count >= 24 && matches == null)
+				{
+					await reactedUser.SendMessageAsync("The lobby is full and it cannot accept more players, please wait for a player to dropout before joining again.");
+					return;
+				}
+
+				//Checking if the player registered before attempting to join a lobby
+				var player = await _dbContext.Players.FindAsync(userID);
+				if (player == null)
+				{
+					await reactedUser.SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.");
+					return;
+				}
+	
 				string spectators = "";
 				Role roleValue = new Role();
 				foreach (var person in lobby.Matches)
@@ -116,7 +123,7 @@ namespace OWMatchmaker.Services
 
 					spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{roleValue}] | ";
 				}
-				var matches = lobby.Matches.FirstOrDefault(u => u.PlayerId == userID);
+				
 				int result = 0;
 
 				switch (arg3.Emote.Name)
@@ -124,7 +131,7 @@ namespace OWMatchmaker.Services
 					case "🛡":
 						if (matches == null)
 						{
-							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Tank });
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Tank, Team = (short)Team.Spectator });
 						}
 						else
 						{
@@ -137,7 +144,7 @@ namespace OWMatchmaker.Services
 					case "⚔":
 						if (matches == null)
 						{
-							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.DPS });
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.DPS, Team = (short)Team.Spectator });
 						}
 						else
 						{
@@ -150,7 +157,7 @@ namespace OWMatchmaker.Services
 					case "💉":
 						if (matches == null)
 						{
-							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Support });
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Support, Team = (short)Team.Spectator });
 						}
 						else
 						{
@@ -169,11 +176,12 @@ namespace OWMatchmaker.Services
 						else
 						{
 							_dbContext.Remove(matches);
+
+							if (lobby.Matches.Count == 1)
+								spectators = "<empty>";
+							else
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
 						}
-						if (lobby.Matches.Count == 1)
-							spectators = "<empty>";
-						else
-							spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
 						break;
 					default:
 						break;

@@ -86,9 +86,25 @@ namespace OWMatchmaker.Modules
 		[RequireContext(ContextType.Guild)]
 		public async Task ShuffleLobby()
 		{
-			
+			using (var _dbContext = new OWMatchmakerContext())
+			{
+				//ThenInclude after Including matches lets me get all the data for each Player object in Matches object.
+				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).ThenInclude(p => p.Player).FirstOrDefaultAsync(u => u.OwnerId == (long)Context.User.Id);
 
-			
+				if (lobby == null)
+				{
+					await Context.User.SendMessageAsync("Command failed: You do not have a lobby currently open. Open a lobby first, then shuffle after there are twelve players available.");
+					await Context.Message.DeleteAsync();
+					return;
+				}
+
+				if (lobby.OwnerId != (long)Context.User.Id)
+				{
+					await Context.User.SendMessageAsync("Command failed: You are not the leader of an existing lobby.");
+					await Context.Message.DeleteAsync();
+					return;
+				}
+			}	
 		}
 
 		[Command("end")]
