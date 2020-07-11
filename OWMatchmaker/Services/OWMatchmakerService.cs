@@ -114,16 +114,31 @@ namespace OWMatchmaker.Services
 					await reactedUser.SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.");
 					return;
 				}
-	
+
 				string spectators = "";
+				string teamOne = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
+				string teamTwo = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
+
 				Role roleValue = new Role();
 				foreach (var person in lobby.Matches)
 				{
 					roleValue = (Role)person.Role;
 
-					spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{roleValue}] | ";
+					if (person.Team == (short)Team.Spectator)
+					{
+						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{roleValue}] | ";
+					}
+					else if (person.Team == (short)Team.TeamOne)
+					{
+						teamOne = teamOne.ReplaceFirst("<empty slot>", $"[{roleValue}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
+					}
+					else if (person.Team == (short)Team.TeamTwo)
+					{
+						teamTwo = teamTwo.ReplaceFirst("<empty slot>", $"[{roleValue}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
+					}
 				}
 				
+
 				int result = 0;
 
 				switch (arg3.Emote.Name)
@@ -132,40 +147,58 @@ namespace OWMatchmaker.Services
 						if (matches == null)
 						{
 							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Tank, Team = (short)Team.Spectator });
+							spectators += $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ";
 						}
 						else
 						{
 							matches.Role = (short)Role.Tank;
 							_dbContext.Update(matches);
-						}
-						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
-						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ";
+
+							if (matches.Team == (short)Team.Spectator)
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ");
+							else if (matches.Team == (short)Team.TeamOne)
+								teamOne = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+							else if (matches.Team == (short)Team.TeamTwo)
+								teamTwo = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+						}			
 						break;
 					case "⚔":
 						if (matches == null)
 						{
 							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.DPS, Team = (short)Team.Spectator });
+							spectators += $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ";
 						}
 						else
 						{
 							matches.Role = (short)Role.DPS;
 							_dbContext.Update(matches);
+
+							if (matches.Team == (short)Team.Spectator)
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ");
+							else if (matches.Team == (short)Team.TeamOne)
+								teamOne = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
+							else if (matches.Team == (short)Team.TeamTwo)
+								teamTwo = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
 						}
-						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
-						spectators += $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ";
 						break;
 					case "💉":
 						if (matches == null)
 						{
 							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Support, Team = (short)Team.Spectator });
+							spectators += $"{player.BattleTag} (SR: {player.Sr}) [Support] | ";
 						}
 						else
 						{
 							matches.Role = (short)Role.Support;
 							_dbContext.Update(matches);
-						}
-						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
-						spectators += $"{player.BattleTag} (SR: {player.Sr}) [Support] | ";
+
+							if (matches.Team == (short)Team.Spectator)
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Support] | ");
+							else if (matches.Team == (short)Team.TeamOne)
+								teamOne = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+							else if (matches.Team == (short)Team.TeamTwo)
+								teamTwo = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+						}	
 						break;
 					case "❌":
 						if (matches == null)
@@ -175,12 +208,21 @@ namespace OWMatchmaker.Services
 						}
 						else
 						{
-							_dbContext.Remove(matches);
-
-							if (lobby.Matches.Count == 1)
+							if (lobby.Matches.Count <= 1)
+							{
 								spectators = "<empty>";
+							}
 							else
-								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
+							{
+								if (matches.Team == (short)Team.Spectator)
+									spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
+								else if (matches.Team == (short)Team.TeamOne)
+									teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
+								else if (matches.Team == (short)Team.TeamTwo)
+									teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
+							}
+
+							_dbContext.Remove(matches);
 						}
 						break;
 					default:
@@ -200,8 +242,8 @@ namespace OWMatchmaker.Services
 											.WithIconUrl(_config["DiscordFooterIconURL"]);
 									})
 									.AddField("Spectators", spectators)
-									.AddField("Team 1", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true)
-									.AddField("Team 2", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true);
+									.AddField("Team 1", teamOne, true)
+									.AddField("Team 2", teamTwo, true);
 					var embed = builder.Build();
 
 					await message.ModifyAsync(u => u.Embed = embed);

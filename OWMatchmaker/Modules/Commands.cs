@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using OWMatchmaker.Controllers;
 using OWMatchmaker.Models;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -104,7 +105,41 @@ namespace OWMatchmaker.Modules
 					await Context.Message.DeleteAsync();
 					return;
 				}
-			}	
+
+				if (lobby.Matches.Count < 12)
+				{
+					await Context.User.SendMessageAsync("Command failed: The lobby must have at least 12 players before shuffling.");
+					await Context.Message.DeleteAsync();
+					return;
+				}
+
+				await Context.Message.DeleteAsync();
+				//Set everyone to spectators
+				lobby.Matches.ToList().ForEach(t => t.Team = (short)Team.Spectator);
+				
+				foreach (var match in lobby.Matches)
+				{
+
+				}
+
+
+				var builder = new EmbedBuilder()
+									.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag}")
+									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
+									.WithColor(new Color(0x9B4800))
+									.WithFooter(footer => {
+										footer
+											.WithText("owmatcher.com")
+											.WithIconUrl(_config["DiscordFooterIconURL"]);
+									})
+									.AddField("Spectators", "<empty>")
+									.AddField("Team 1", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true)
+									.AddField("Team 2", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true);
+				var embed = builder.Build();
+
+
+
+			}
 		}
 
 		[Command("end")]

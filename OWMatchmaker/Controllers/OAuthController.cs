@@ -39,13 +39,16 @@ namespace OWMatchmaker.Controllers
 		{
 			using (var _dbContext = new OWMatchmakerContext())
 			{
+				//Find the message in the Database.
 				var initializedMessage = await _dbContext.RegistrationMessages.FindAsync((long)state);
 
 				if (initializedMessage == null)
 					return BadRequest();
 
+				//Get the ID of the owner of the message;
 				var userId = initializedMessage.OwnerId;
 
+				//Get a token from BattleNET using OpenID
 				var tokenModel = await GetAccessToken(code);
 
 				if (tokenModel == null)
@@ -54,8 +57,10 @@ namespace OWMatchmaker.Controllers
 				var userInfo = await GetUserInfo(tokenModel.access_token);
 				userInfo.battletag = userInfo.battletag.Replace("#", "-");
 
+				//Get userstarts from ow-api using the /stats endpoint
 				var userStats = await GetOWUserRating(userInfo.battletag);
 
+				//Check if this user has already registered in our DB
 				var player = await _dbContext.Players.FindAsync(userId);
 
 				if (player == null)
