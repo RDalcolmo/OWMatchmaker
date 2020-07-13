@@ -171,7 +171,8 @@ namespace OWMatchmaker.Modules
 				_dbContext.Matches.UpdateRange(finalShuffle);
 				await _dbContext.SaveChangesAsync();
 
-				var spectators = await _dbContext.Matches.Include(u => u.Player).Where(t => t.Team == (short)Team.Spectator && t.LobbyId == (long)Context.User.Id).ToListAsync();
+				var spectators = lobby.Matches.Where(t => (t.Team == (short)Team.Spectator)).ToList();
+				//var spectators = await _dbContext.Matches.Include(u => u.Player).Where(t => (t.Team == (short)Team.Spectator) && (t.LobbyId == (long)Context.User.Id)).ToListAsync();
 
 				if (spectators.Count == 0)
 				{

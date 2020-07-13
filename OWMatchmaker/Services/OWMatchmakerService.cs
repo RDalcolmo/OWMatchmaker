@@ -157,9 +157,9 @@ namespace OWMatchmaker.Services
 							if (matches.Team == (short)Team.Spectator)
 								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ");
 							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+								teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
 							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+								teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
 						}			
 						break;
 					case "⚔":
@@ -176,9 +176,9 @@ namespace OWMatchmaker.Services
 							if (matches.Team == (short)Team.Spectator)
 								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ");
 							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
+								teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
 							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
+								teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
 						}
 						break;
 					case "💉":
@@ -195,9 +195,9 @@ namespace OWMatchmaker.Services
 							if (matches.Team == (short)Team.Spectator)
 								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Support] | ");
 							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+								teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
 							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = spectators.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+								teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
 						}	
 						break;
 					case "❌":
