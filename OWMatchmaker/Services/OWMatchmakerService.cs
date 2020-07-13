@@ -91,7 +91,7 @@ namespace OWMatchmaker.Services
 				//Get all the players in the lobby in order to build a spectator list.
 				//Gets the players informations within the lobby.
 				//Prevents reactions from being deleted where they shouldn't be.
-				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).FirstOrDefaultAsync(u => u.LobbyId == messageID);
+				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).ThenInclude(p => p.Player).FirstOrDefaultAsync(u => u.LobbyId == messageID);
 				var matches = lobby.Matches.FirstOrDefault(u => u.PlayerId == userID);
 
 				if (lobby == null)

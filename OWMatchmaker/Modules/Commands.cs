@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using OWMatchmaker.Controllers;
+using OWMatchmaker.Handlers;
 using OWMatchmaker.Models;
 using System;
 using System.Collections.Generic;
@@ -116,29 +117,88 @@ namespace OWMatchmaker.Modules
 				await Context.Message.DeleteAsync();
 				//Set everyone to spectators
 				lobby.Matches.ToList().ForEach(t => t.Team = (short)Team.Spectator);
-				
-				foreach (var match in lobby.Matches)
-				{
 
+				string[] embedTest =
+				{
+					"",
+					"<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>",
+					"<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>"
+				};
+				Random rnd = new Random();
+				int countOfPlayers = 12;
+
+				Queue<Matches> listOfTanks = new Queue<Matches>(lobby.Matches.Where(r => r.Role == (short)Role.Tank).OrderBy(x => x.MatchesPlayed).ThenBy(u => rnd.Next()).Take(countOfPlayers));
+				Queue<Matches> listOfSupport = new Queue<Matches>(lobby.Matches.Where(r => r.Role == (short)Role.Support).OrderBy(x => x.MatchesPlayed).ThenBy(u => rnd.Next()).Take(countOfPlayers));
+				Queue<Matches> listOfDPS = new Queue<Matches>(lobby.Matches.Where(r => r.Role == (short)Role.DPS).OrderBy(x => x.MatchesPlayed).ThenBy(u => rnd.Next()).Take(countOfPlayers));
+
+				//Put each role list of all available players into a list sorted by the amount of elements in ascending order.
+				List<Queue<Matches>> listOfFill = new List<Queue<Matches>>()
+				{ 
+					listOfTanks,
+					listOfSupport,
+					listOfDPS
+				}.OrderBy(u => u.Count).ToList();
+
+				//Create the final list that will have a total of 12 elements
+				List<Matches> finalShuffle = new List<Matches>();
+
+				for (int i = 0; i < 12; i++)
+				{
+					if (listOfFill[i % 3].Count != 0 && listOfFill[0].Count != 0)
+					{
+						finalShuffle.Add(listOfFill[i % 3].Dequeue());
+						
+					}
+					else if (listOfFill[(i % 2) + 1].Count != 0 && listOfFill[1].Count != 0)
+					{
+						finalShuffle.Add(listOfFill[(i % 2) + 1].Dequeue());
+					}
+					else
+					{
+						finalShuffle.Add(listOfFill[2].Dequeue());
+					}
+				}
+
+				finalShuffle = finalShuffle.OrderBy(r => r.Role).ToList();
+
+				for (int i = 0; i < 12; i++)
+				{
+					finalShuffle[i].Team = (short)((i % 2) + 1);
+					embedTest[(i % 2) + 1] = embedTest[(i % 2) + 1].ReplaceFirst("<empty slot>", $"[{(Role)finalShuffle[i].Role}] {finalShuffle[i].Player.BattleTag} (SR: {finalShuffle[i].Player.Sr})");
 				}
 
 
+				_dbContext.Matches.UpdateRange(finalShuffle);
+				await _dbContext.SaveChangesAsync();
+
+				var spectators = await _dbContext.Matches.Include(u => u.Player).Where(t => t.Team == (short)Team.Spectator && t.LobbyId == (long)Context.User.Id).ToListAsync();
+
+				if (spectators.Count == 0)
+				{
+					embedTest[0] = "<empty>";
+				}
+
+				foreach (var player in spectators)
+				{
+					embedTest[0] += $"{player.Player.BattleTag} (SR: {player.Player.Sr}) [{(Role)player.Role}] | ";
+				}
+
 				var builder = new EmbedBuilder()
-									.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag} | Slots Open: {24 - lobby.Matches.Count}")
-									.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
-									.WithColor(new Color(0x9B4800))
-									.WithFooter(footer => {
-										footer
-											.WithText("owmatcher.com")
-											.WithIconUrl(_config["DiscordFooterIconURL"]);
-									})
-									.AddField("Spectators", "<empty>")
-									.AddField("Team 1", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true)
-									.AddField("Team 2", "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>", true);
+								.WithTitle($"Lobby Owner: {lobby.Owner.BattleTag} | Slots Open: {24 - lobby.Matches.Count}")
+								.WithDescription("React below to join: 🛡 Tanks, ⚔ DPS, 💉 Support, ❌ Leave Lobby.")
+								.WithColor(new Color(0x9B4800))
+								.WithFooter(footer => {
+									footer
+										.WithText("owmatcher.com")
+										.WithIconUrl(_config["DiscordFooterIconURL"]);
+								})
+								.AddField("Spectators", embedTest[0])
+								.AddField("Team 1", embedTest[1], true)
+								.AddField("Team 2", embedTest[2], true);
 				var embed = builder.Build();
 
-
-
+				var message = await Context.Channel.GetMessageAsync((ulong)lobby.LobbyId) as IUserMessage;
+				await message.ModifyAsync(u => u.Embed = embed);
 			}
 		}
 
@@ -244,7 +304,6 @@ namespace OWMatchmaker.Modules
 		}
 	}
 
-	[RequireContext(ContextType.DM)]
 	public class RegistrationModule : ModuleBase
 	{
 		private readonly IConfiguration _config;
@@ -258,7 +317,7 @@ namespace OWMatchmaker.Modules
 		[Alias("r")]
 		public async Task RegisterPlayer()
 		{
-			var initializedMessage = await ReplyAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.");
+			var initializedMessage = await Context.User.SendMessageAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.");
 
 			var builder = new EmbedBuilder()
 								.WithTitle("Click Here to Register")
@@ -272,15 +331,21 @@ namespace OWMatchmaker.Modules
 								.AddField("Registration Program", "Welcome Hero! My name is Matcher and I will guide you through this process.\nClick the link above to Authorize.");
 			var embed = builder.Build();
 
-			var messageSent = await ReplyAsync(embed: embed).ConfigureAwait(false);
+			var messageSent = await Context.User.SendMessageAsync(embed: embed).ConfigureAwait(false);
 
 			using (var _dbContext = new OWMatchmakerContext())
 			{
 				await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(5) });
 				await _dbContext.SaveChangesAsync();
 			}
+
+			if (Context.Channel is IDMChannel)
+				return;
+
+			await Context.Message.DeleteAsync();
 		}
 
+		[RequireContext(ContextType.DM)]
 		[Command("refresh")]
 		public async Task RefreshStats()
 		{
