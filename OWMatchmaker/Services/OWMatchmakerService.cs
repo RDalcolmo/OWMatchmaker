@@ -119,24 +119,7 @@ namespace OWMatchmaker.Services
 				string teamOne = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
 				string teamTwo = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
 
-				Role roleValue = new Role();
-				foreach (var person in lobby.Matches)
-				{
-					roleValue = (Role)person.Role;
-
-					if (person.Team == (short)Team.Spectator)
-					{
-						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{roleValue}] | ";
-					}
-					else if (person.Team == (short)Team.TeamOne)
-					{
-						teamOne = teamOne.ReplaceFirst("<empty slot>", $"[{roleValue}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
-					}
-					else if (person.Team == (short)Team.TeamTwo)
-					{
-						teamTwo = teamTwo.ReplaceFirst("<empty slot>", $"[{roleValue}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
-					}
-				}
+				
 				
 
 				int result = 0;
@@ -155,11 +138,11 @@ namespace OWMatchmaker.Services
 							_dbContext.Update(matches);
 
 							if (matches.Team == (short)Team.Spectator)
-								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ");
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ");
 							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+								teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
 							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+								teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
 						}			
 						break;
 					case "⚔":
@@ -174,11 +157,11 @@ namespace OWMatchmaker.Services
 							_dbContext.Update(matches);
 
 							if (matches.Team == (short)Team.Spectator)
-								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ");
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ");
 							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
+								teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
 							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
+								teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
 						}
 						break;
 					case "💉":
@@ -193,11 +176,11 @@ namespace OWMatchmaker.Services
 							_dbContext.Update(matches);
 
 							if (matches.Team == (short)Team.Spectator)
-								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Support] | ");
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Support] | ");
 							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+								teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
 							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+								teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
 						}	
 						break;
 					case "❌":
@@ -215,11 +198,11 @@ namespace OWMatchmaker.Services
 							else
 							{
 								if (matches.Team == (short)Team.Spectator)
-									spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{roleValue}] | ", string.Empty);
+									spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", string.Empty);
 								else if (matches.Team == (short)Team.TeamOne)
-									teamOne = teamOne.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
+									teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
 								else if (matches.Team == (short)Team.TeamTwo)
-									teamTwo = teamTwo.Replace($"[{roleValue}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
+									teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
 							}
 
 							_dbContext.Remove(matches);
@@ -227,6 +210,22 @@ namespace OWMatchmaker.Services
 						break;
 					default:
 						break;
+				}
+
+				foreach (var person in lobby.Matches.OrderBy(r => r.Role))
+				{
+					if (person.Team == (short)Team.Spectator)
+					{
+						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{(Role)person.Role}] | ";
+					}
+					else if (person.Team == (short)Team.TeamOne)
+					{
+						teamOne = teamOne.ReplaceFirst("<empty slot>", $"[{(Role)person.Role}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
+					}
+					else if (person.Team == (short)Team.TeamTwo)
+					{
+						teamTwo = teamTwo.ReplaceFirst("<empty slot>", $"[{(Role)person.Role}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
+					}
 				}
 
 				result = await _dbContext.SaveChangesAsync();
