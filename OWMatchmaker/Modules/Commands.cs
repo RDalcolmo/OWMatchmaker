@@ -163,6 +163,7 @@ namespace OWMatchmaker.Modules
 
 				for (int i = 0; i < 12; i++)
 				{
+					finalShuffle[i].MatchesPlayed += 1;
 					finalShuffle[i].Team = (short)((i % 2) + 1);
 					embedTest[(i % 2) + 1] = embedTest[(i % 2) + 1].ReplaceFirst("<empty slot>", $"[{(Role)finalShuffle[i].Role}] {finalShuffle[i].Player.BattleTag} (SR: {finalShuffle[i].Player.Sr})");
 				}
@@ -172,7 +173,6 @@ namespace OWMatchmaker.Modules
 				await _dbContext.SaveChangesAsync();
 
 				var spectators = lobby.Matches.Where(t => (t.Team == (short)Team.Spectator)).ToList();
-				//var spectators = await _dbContext.Matches.Include(u => u.Player).Where(t => (t.Team == (short)Team.Spectator) && (t.LobbyId == (long)Context.User.Id)).ToListAsync();
 
 				if (spectators.Count == 0)
 				{
@@ -217,29 +217,25 @@ namespace OWMatchmaker.Modules
 					if (lobby == null)
 					{
 						await Context.User.SendMessageAsync("Command failed. You have no running lobbies.");
-
-						if (Context.Channel is IDMChannel)
-							return;
-
-						await Context.Message.DeleteAsync();
-						return;
 					}
-					_dbContext.Lobbies.Remove(lobby);
-					var result = await _dbContext.SaveChangesAsync();
-
-					if (result > 0)
+					else
 					{
-						await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.");
-						await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId);
+						_dbContext.Lobbies.Remove(lobby);
+						var result = await _dbContext.SaveChangesAsync();
 
-						if (Context.Channel is IDMChannel)
-							return;
+						if (result > 0)
+						{
+							await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.");
+							await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId);
 
-						await Context.Message.DeleteAsync();
-						
-						return;
+						}
 					}
 
+					if (Context.Channel is IDMChannel)
+						return;
+
+					await Context.Message.DeleteAsync();
+					return;
 				}
 			}
 			catch (Exception ex)
@@ -255,7 +251,7 @@ namespace OWMatchmaker.Modules
 		{
 			var builder = new EmbedBuilder()
 								.WithTitle("Here is a list of commands")
-								.WithDescription("`!lobby create [Alias !l c]` - Creates a lobby. You may only have one lobby open at a time. The cap of players that can join is 24.\n`!lobby end [Alias !l e]` - Ends a lobby session. Use this when you're done hosting a lobby.\n`!lobby shuffle [Alias !l s]` - Shuffles a lobby. There must be at least 12 players in the lobby before executing the shuffle command.")
+								.WithDescription("`!lobby create [Alias !l c]` - Creates a lobby. You may only have one lobby open at a time. The cap of players that can join is 24.\n`!lobby end [Alias !l e]` - Ends a lobby session. Use this when you're done hosting a lobby.\n`!lobby shuffle [Alias !l s]` - Shuffles a lobby. There must be at least 12 players in the lobby before executing the shuffle command.\n`!lobby leave [Alias !l l]` - Leaves a lobby. Useful if you can't find a lobby that you previously joined.")
 								.WithColor(new Color(0x9B4800))
 								.WithFooter(footer => {
 									footer
@@ -269,6 +265,37 @@ namespace OWMatchmaker.Modules
 				return;
 
 			await Context.Message.DeleteAsync();	
+		}
+
+		[Command("leave")]
+		[Alias("l")]
+		public async Task LeaveLobby()
+		{
+			using (var _dbContext = new OWMatchmakerContext())
+			{
+				var player = await _dbContext.Matches.FindAsync((long)Context.User.Id);
+
+				if (player == null)
+				{
+					await Context.User.SendMessageAsync("You are not in a lobby.");
+				}
+				else
+				{
+					_dbContext.Remove(player);
+					var result = await _dbContext.SaveChangesAsync();
+
+					if (result > 0)
+					{
+						await Context.User.SendMessageAsync("You have left a lobby.");
+					}
+				}
+
+				if (Context.Channel is IDMChannel)
+					return;
+
+				await Context.Message.DeleteAsync();
+				return;
+			}
 		}
 	}
 

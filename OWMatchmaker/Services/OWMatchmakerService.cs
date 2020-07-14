@@ -100,6 +100,14 @@ namespace OWMatchmaker.Services
 				//Remove all user reactions from a Lobby message.
 				await message.RemoveReactionAsync(arg3.Emote, reactedUser);
 
+				//Check if the player is already in another lobby
+				if (lobby.Matches.FirstOrDefault(u => (u.PlayerId == userID) && (u.LobbyId != messageID)) != null)
+				{
+					await reactedUser.SendMessageAsync("You are already a part of another lobby. In order to join another lobby please leave the current one. Use the command `!lobby leave` if you can't find the lobby you joined.");
+					return;
+				}	
+
+
 				//Check if the lobby is full
 				if (lobby.Matches.Count >= 24 && matches == null)
 				{
@@ -119,11 +127,8 @@ namespace OWMatchmaker.Services
 				string teamOne = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
 				string teamTwo = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
 
-				
-				
-
 				int result = 0;
-
+				bool leaveFlag = false;
 				switch (arg3.Emote.Name)
 				{
 					case "🛡":
@@ -191,18 +196,10 @@ namespace OWMatchmaker.Services
 						}
 						else
 						{
+							leaveFlag = true;
 							if (lobby.Matches.Count <= 1)
 							{
 								spectators = "<empty>";
-							}
-							else
-							{
-								if (matches.Team == (short)Team.Spectator)
-									spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", string.Empty);
-								else if (matches.Team == (short)Team.TeamOne)
-									teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
-								else if (matches.Team == (short)Team.TeamTwo)
-									teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
 							}
 
 							_dbContext.Remove(matches);
@@ -226,6 +223,16 @@ namespace OWMatchmaker.Services
 					{
 						teamTwo = teamTwo.ReplaceFirst("<empty slot>", $"[{(Role)person.Role}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
 					}
+				}
+
+				if (leaveFlag)
+				{
+					if (matches.Team == (short)Team.Spectator)
+						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{(Role)matches.Role}] | ", string.Empty);
+					else if (matches.Team == (short)Team.TeamOne)
+						teamOne = teamOne.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
+					else if (matches.Team == (short)Team.TeamTwo)
+						teamTwo = teamTwo.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
 				}
 
 				result = await _dbContext.SaveChangesAsync();
