@@ -44,7 +44,7 @@ namespace OWMatchmaker.Controllers
 				var initializedMessage = await _dbContext.RegistrationMessages.FindAsync((long)state);
 
 				if (initializedMessage == null)
-					return RedirectToPage("Failure");
+					return RedirectToPage("/Failure");
 
 				//Get the ID of the owner of the message;
 				var userId = initializedMessage.OwnerId;
@@ -53,7 +53,7 @@ namespace OWMatchmaker.Controllers
 				var tokenModel = await GetAccessToken(code);
 
 				if (tokenModel == null)
-					return RedirectToPage("Failure");
+					return RedirectToPage("/Failure");
 
 				var userInfo = await GetUserInfo(tokenModel.access_token);
 				userInfo.battletag = userInfo.battletag.Replace("#", "-");
@@ -105,7 +105,7 @@ namespace OWMatchmaker.Controllers
 				}
 			}
 
-			return RedirectToPage("Success");
+			return RedirectToPage("/Success");
 		}
 
 		public async Task<BlizzardAccessTokenModel> GetAccessToken(string code)
