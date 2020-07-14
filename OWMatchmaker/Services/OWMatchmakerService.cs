@@ -9,6 +9,7 @@ using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Linq;
+using OWMatchmaker.Modules;
 
 namespace OWMatchmaker.Services
 {
@@ -76,25 +77,26 @@ namespace OWMatchmaker.Services
 			if (reactedUser.IsBot)
 				return;
 
-			var message = await arg1.GetOrDownloadAsync();
-
-			//We only care if the reactions added are to the bot message.
-			if (!(message.Author.Id == _discord.CurrentUser.Id))
-				return;
-
-			var messageID = (long)arg3.MessageId;
-			var userID = (long)arg3.UserId;
-
 			using (var _dbContext = new OWMatchmakerContext())
 			{
+				var messageID = (long)arg3.MessageId;
+				var userID = (long)arg3.UserId;
+
 				//Check if the message being reacted to is a lobby.
 				//Get all the players in the lobby in order to build a spectator list.
 				//Gets the players informations within the lobby.
 				//Prevents reactions from being deleted where they shouldn't be.
 				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).ThenInclude(p => p.Player).FirstOrDefaultAsync(u => u.LobbyId == messageID);
-				var matches = lobby.Matches.FirstOrDefault(u => u.PlayerId == userID);
 
 				if (lobby == null)
+					return;
+
+				var matches = lobby.Matches.FirstOrDefault(u => u.PlayerId == userID);
+
+				var message = await arg1.GetOrDownloadAsync();
+
+				//We only care if the reactions added are to the bot message.
+				if (!(message.Author.Id == _discord.CurrentUser.Id))
 					return;
 
 				//Remove all user reactions from a Lobby message.
@@ -127,6 +129,14 @@ namespace OWMatchmaker.Services
 				string teamOne = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
 				string teamTwo = "<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>\n<empty slot>";
 
+				foreach (var person in lobby.Matches)
+				{
+					if (person.Team == (short)Team.Spectator)
+					{
+						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{(Role)person.Role}] | ";
+					}
+				}
+
 				int result = 0;
 				bool leaveFlag = false;
 				switch (arg3.Emote.Name)
@@ -139,15 +149,15 @@ namespace OWMatchmaker.Services
 						}
 						else
 						{
+							if (matches.Team == (short)Team.Spectator)
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{(Role)matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ");
+							else if (matches.Team == (short)Team.TeamOne)
+								teamOne = teamOne.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+							else if (matches.Team == (short)Team.TeamTwo)
+								teamTwo = teamTwo.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
+
 							matches.Role = (short)Role.Tank;
 							_dbContext.Update(matches);
-
-							if (matches.Team == (short)Team.Spectator)
-								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ");
-							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
-							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Tank] {player.BattleTag} (SR: {player.Sr})");
 						}			
 						break;
 					case "⚔":
@@ -158,15 +168,15 @@ namespace OWMatchmaker.Services
 						}
 						else
 						{
+							if (matches.Team == (short)Team.Spectator)
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{(Role)matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ");
+							else if (matches.Team == (short)Team.TeamOne)
+								teamOne = teamOne.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
+							else if (matches.Team == (short)Team.TeamTwo)
+								teamTwo = teamTwo.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
+
 							matches.Role = (short)Role.DPS;
 							_dbContext.Update(matches);
-
-							if (matches.Team == (short)Team.Spectator)
-								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ");
-							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
-							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[DPS] {player.BattleTag} (SR: {player.Sr})");
 						}
 						break;
 					case "💉":
@@ -177,15 +187,15 @@ namespace OWMatchmaker.Services
 						}
 						else
 						{
+							if (matches.Team == (short)Team.Spectator)
+								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{(Role)matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Support] | ");
+							else if (matches.Team == (short)Team.TeamOne)
+								teamOne = teamOne.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+							else if (matches.Team == (short)Team.TeamTwo)
+								teamTwo = teamTwo.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
+
 							matches.Role = (short)Role.Support;
 							_dbContext.Update(matches);
-
-							if (matches.Team == (short)Team.Spectator)
-								spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{matches.Role}] | ", $"{player.BattleTag} (SR: {player.Sr}) [Support] | ");
-							else if (matches.Team == (short)Team.TeamOne)
-								teamOne = teamOne.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
-							else if (matches.Team == (short)Team.TeamTwo)
-								teamTwo = teamTwo.Replace($"[{matches.Role}] {player.BattleTag} (SR: {player.Sr})", $"[Support] {player.BattleTag} (SR: {player.Sr})");
 						}	
 						break;
 					case "❌":
@@ -211,11 +221,7 @@ namespace OWMatchmaker.Services
 
 				foreach (var person in lobby.Matches.OrderBy(r => r.Role))
 				{
-					if (person.Team == (short)Team.Spectator)
-					{
-						spectators += $"{person.Player.BattleTag} (SR: {person.Player.Sr}) [{(Role)person.Role}] | ";
-					}
-					else if (person.Team == (short)Team.TeamOne)
+					if (person.Team == (short)Team.TeamOne)
 					{
 						teamOne = teamOne.ReplaceFirst("<empty slot>", $"[{(Role)person.Role}] {person.Player.BattleTag} (SR: {person.Player.Sr})");
 					}
@@ -228,7 +234,12 @@ namespace OWMatchmaker.Services
 				if (leaveFlag)
 				{
 					if (matches.Team == (short)Team.Spectator)
-						spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{(Role)matches.Role}] | ", string.Empty);
+					{
+						if (lobby.Matches.Count > 1)
+						{
+							spectators = spectators.Replace($"{player.BattleTag} (SR: {player.Sr}) [{(Role)matches.Role}] | ", string.Empty);
+						}
+					}
 					else if (matches.Team == (short)Team.TeamOne)
 						teamOne = teamOne.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
 					else if (matches.Team == (short)Team.TeamTwo)
