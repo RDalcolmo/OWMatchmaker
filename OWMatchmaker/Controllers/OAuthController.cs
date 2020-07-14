@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using Discord.WebSocket;
 using Discord;
 using Microsoft.EntityFrameworkCore;
+using OWMatchmaker.Pages;
 
 namespace OWMatchmaker.Controllers
 {
@@ -43,7 +44,7 @@ namespace OWMatchmaker.Controllers
 				var initializedMessage = await _dbContext.RegistrationMessages.FindAsync((long)state);
 
 				if (initializedMessage == null)
-					return BadRequest();
+					return RedirectToPage("Failure");
 
 				//Get the ID of the owner of the message;
 				var userId = initializedMessage.OwnerId;
@@ -52,7 +53,7 @@ namespace OWMatchmaker.Controllers
 				var tokenModel = await GetAccessToken(code);
 
 				if (tokenModel == null)
-					return BadRequest();
+					return RedirectToPage("Failure");
 
 				var userInfo = await GetUserInfo(tokenModel.access_token);
 				userInfo.battletag = userInfo.battletag.Replace("#", "-");
@@ -104,7 +105,7 @@ namespace OWMatchmaker.Controllers
 				}
 			}
 
-			return Ok("Registration successful, you may close this window!");
+			return RedirectToPage("Success");
 		}
 
 		public async Task<BlizzardAccessTokenModel> GetAccessToken(string code)
