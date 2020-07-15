@@ -379,7 +379,7 @@ namespace OWMatchmaker.Modules
 		{
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var player = await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == (long)Context.User.Id).ConfigureAwait(false);
+				var player = await _dbContext.Players.FindAsync((long)Context.User.Id).ConfigureAwait(false);
 				var message = await ReplyAsync("Synchronizing your SR, please wait...").ConfigureAwait(false);
 				if (player == null)
 				{
@@ -392,7 +392,6 @@ namespace OWMatchmaker.Modules
 				var playerStats = await controller.GetOWUserRating(player.BattleTag).ConfigureAwait(false);
 				player.Sr = playerStats.Rating;
 
-				_dbContext.Players.Update(player);
 				var result = await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				if (result > 0)

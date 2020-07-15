@@ -70,7 +70,6 @@ namespace OWMatchmaker.Controllers
 				{
 					player.BattleTag = userInfo.battletag;
 					player.Sr = userStats.Rating;
-					_dbContext.Players.Update(player);
 				}
 
 				var result = await _dbContext.SaveChangesAsync();
