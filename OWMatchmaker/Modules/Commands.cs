@@ -33,21 +33,21 @@ namespace OWMatchmaker.Modules
 		{
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var player = await _dbContext.Players.FindAsync((long)Context.User.Id);
+				var player = await _dbContext.Players.FindAsync((long)Context.User.Id).ConfigureAwait(false);
 				
 				if (player == null)
 				{
-					await Context.User.SendMessageAsync("In order to create a lobby, you must connect your BattleNet account with our service. Please type `!register` to begin the process.");
-					await Context.Message.DeleteAsync();
+					await Context.User.SendMessageAsync("In order to create a lobby, you must connect your BattleNet account with our service. Please type `!register` to begin the process.").ConfigureAwait(false);
+					await Context.Message.DeleteAsync().ConfigureAwait(false);
 					return;
 				}
 
-				var lobby = await _dbContext.Lobbies.FindAsync((long)Context.User.Id);
+				var lobby = await _dbContext.Lobbies.FindAsync((long)Context.User.Id).ConfigureAwait(false);
 				
 				if (lobby != null)
 				{
-					await Context.User.SendMessageAsync("You already have a lobby running. Please use the command `!lobby end` before creating a new one.");
-					await Context.Message.DeleteAsync();
+					await Context.User.SendMessageAsync("You already have a lobby running. Please use the command `!lobby end` before creating a new one.").ConfigureAwait(false);
+					await Context.Message.DeleteAsync().ConfigureAwait(false);
 					return;
 				}
 
@@ -73,12 +73,12 @@ namespace OWMatchmaker.Modules
 					new Emoji("💉"),
 					new Emoji("❌"),
 				};
-				await lobbyMessage.AddReactionsAsync(emotes);
+				await lobbyMessage.AddReactionsAsync(emotes).ConfigureAwait(false);
 
-				await _dbContext.Lobbies.AddAsync(new Lobbies() { LobbyId = (long)lobbyMessage.Id, OwnerId = (long)Context.User.Id });
-				await _dbContext.SaveChangesAsync();
+				await _dbContext.Lobbies.AddAsync(new Lobbies() { LobbyId = (long)lobbyMessage.Id, OwnerId = (long)Context.User.Id }).ConfigureAwait(false);
+				await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 
-				await Context.Message.DeleteAsync();
+				await Context.Message.DeleteAsync().ConfigureAwait(false);
 			}
 		}
 
@@ -91,30 +91,30 @@ namespace OWMatchmaker.Modules
 			using (var _dbContext = new OWMatchmakerContext())
 			{
 				//ThenInclude after Including matches lets me get all the data for each Player object in Matches object.
-				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).ThenInclude(p => p.Player).FirstOrDefaultAsync(u => u.OwnerId == (long)Context.User.Id);
+				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).ThenInclude(p => p.Player).FirstOrDefaultAsync(u => u.OwnerId == (long)Context.User.Id).ConfigureAwait(false);
 
 				if (lobby == null)
 				{
-					await Context.User.SendMessageAsync("Command failed: You do not have a lobby currently open. Open a lobby first, then shuffle after there are twelve players available.");
-					await Context.Message.DeleteAsync();
+					await Context.User.SendMessageAsync("Command failed: You do not have a lobby currently open. Open a lobby first, then shuffle after there are twelve players available.").ConfigureAwait(false);
+					await Context.Message.DeleteAsync().ConfigureAwait(false);
 					return;
 				}
 
 				if (lobby.OwnerId != (long)Context.User.Id)
 				{
-					await Context.User.SendMessageAsync("Command failed: You are not the leader of an existing lobby.");
-					await Context.Message.DeleteAsync();
+					await Context.User.SendMessageAsync("Command failed: You are not the leader of an existing lobby.").ConfigureAwait(false);
+					await Context.Message.DeleteAsync().ConfigureAwait(false);
 					return;
 				}
 
 				if (lobby.Matches.Count < 12)
 				{
-					await Context.User.SendMessageAsync("Command failed: The lobby must have at least 12 players before shuffling.");
-					await Context.Message.DeleteAsync();
+					await Context.User.SendMessageAsync("Command failed: The lobby must have at least 12 players before shuffling.").ConfigureAwait(false);
+					await Context.Message.DeleteAsync().ConfigureAwait(false);
 					return;
 				}
 
-				await Context.Message.DeleteAsync();
+				await Context.Message.DeleteAsync().ConfigureAwait(false);
 				//Set everyone to spectators
 				lobby.Matches.ToList().ForEach(t => t.Team = (short)Team.Spectator);
 
@@ -170,7 +170,7 @@ namespace OWMatchmaker.Modules
 
 
 				_dbContext.Matches.UpdateRange(finalShuffle);
-				await _dbContext.SaveChangesAsync();
+				await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				var spectators = lobby.Matches.Where(t => (t.Team == (short)Team.Spectator)).ToList();
 
@@ -198,8 +198,8 @@ namespace OWMatchmaker.Modules
 								.AddField("Team 2", embedTest[2], true);
 				var embed = builder.Build();
 
-				var message = await Context.Channel.GetMessageAsync((ulong)lobby.LobbyId) as IUserMessage;
-				await message.ModifyAsync(u => u.Embed = embed);
+				var message = await Context.Channel.GetMessageAsync((ulong)lobby.LobbyId).ConfigureAwait(false) as IUserMessage;
+				await message.ModifyAsync(u => u.Embed = embed).ConfigureAwait(false);
 			}
 		}
 
@@ -212,21 +212,21 @@ namespace OWMatchmaker.Modules
 				using (var _dbContext = new OWMatchmakerContext())
 				{
 					//The Include is so that we can delete all the Child keys from table Matches.
-					var lobby = await _dbContext.Lobbies.Include(x => x.Matches).FirstOrDefaultAsync(u => u.OwnerId == (long)Context.User.Id);
+					var lobby = await _dbContext.Lobbies.Include(x => x.Matches).FirstOrDefaultAsync(u => u.OwnerId == (long)Context.User.Id).ConfigureAwait(false);
 
 					if (lobby == null)
 					{
-						await Context.User.SendMessageAsync("Command failed. You have no running lobbies.");
+						await Context.User.SendMessageAsync("Command failed. You have no running lobbies.").ConfigureAwait(false);
 					}
 					else
 					{
 						_dbContext.Lobbies.Remove(lobby);
-						var result = await _dbContext.SaveChangesAsync();
+						var result = await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 
 						if (result > 0)
 						{
-							await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.");
-							await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId);
+							await Context.User.SendMessageAsync("Your lobby has been closed. You may now create a new lobby.").ConfigureAwait(false);
+							await Context.Channel.DeleteMessageAsync((ulong)lobby.LobbyId).ConfigureAwait(false);
 
 						}
 					}
@@ -234,7 +234,7 @@ namespace OWMatchmaker.Modules
 					if (Context.Channel is IDMChannel)
 						return;
 
-					await Context.Message.DeleteAsync();
+					await Context.Message.DeleteAsync().ConfigureAwait(false);
 					return;
 				}
 			}
@@ -264,7 +264,7 @@ namespace OWMatchmaker.Modules
 			if (Context.Channel is IDMChannel)
 				return;
 
-			await Context.Message.DeleteAsync();	
+			await Context.Message.DeleteAsync().ConfigureAwait(false);	
 		}
 
 		[Command("leave")]
@@ -273,27 +273,27 @@ namespace OWMatchmaker.Modules
 		{
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var player = await _dbContext.Matches.FindAsync((long)Context.User.Id);
+				var player = await _dbContext.Matches.FindAsync((long)Context.User.Id).ConfigureAwait(false);
 
 				if (player == null)
 				{
-					await Context.User.SendMessageAsync("You are not in a lobby.");
+					await Context.User.SendMessageAsync("You are not in a lobby.").ConfigureAwait(false);
 				}
 				else
 				{
 					_dbContext.Remove(player);
-					var result = await _dbContext.SaveChangesAsync();
+					var result = await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 
 					if (result > 0)
 					{
-						await Context.User.SendMessageAsync("You have left a lobby.");
+						await Context.User.SendMessageAsync("You have left a lobby.").ConfigureAwait(false);
 					}
 				}
 
 				if (Context.Channel is IDMChannel)
 					return;
 
-				await Context.Message.DeleteAsync();
+				await Context.Message.DeleteAsync().ConfigureAwait(false);
 				return;
 			}
 		}
@@ -328,7 +328,7 @@ namespace OWMatchmaker.Modules
 			if (Context.Channel is IDMChannel)
 				return;
 			
-			await Context.Message.DeleteAsync();
+			await Context.Message.DeleteAsync().ConfigureAwait(false);
 		}
 	}
 
@@ -345,7 +345,7 @@ namespace OWMatchmaker.Modules
 		[Alias("r")]
 		public async Task RegisterPlayer()
 		{
-			var initializedMessage = await Context.User.SendMessageAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.");
+			var initializedMessage = await Context.User.SendMessageAsync("Initializing registration. Please make sure your Overwatch Profile is set to public prior to registration. Follow the link below to complete registration.").ConfigureAwait(false);
 
 			var builder = new EmbedBuilder()
 								.WithTitle("Click Here to Register")
@@ -363,14 +363,14 @@ namespace OWMatchmaker.Modules
 
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(5) });
-				await _dbContext.SaveChangesAsync();
+				await _dbContext.RegistrationMessages.AddAsync(new RegistrationMessages() { InitializedMessageId = (long)initializedMessage.Id, MessageId = (long)messageSent.Id, OwnerId = (long)Context.User.Id, ExpiresIn = DateTime.Now.AddMinutes(5) }).ConfigureAwait(false);
+				await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 			}
 
 			if (Context.Channel is IDMChannel)
 				return;
 
-			await Context.Message.DeleteAsync();
+			await Context.Message.DeleteAsync().ConfigureAwait(false);
 		}
 
 		[RequireContext(ContextType.DM)]
@@ -379,25 +379,25 @@ namespace OWMatchmaker.Modules
 		{
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var player = await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == (long)Context.User.Id);
-				var message = await ReplyAsync("Synchronizing your SR, please wait...");
+				var player = await _dbContext.Players.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == (long)Context.User.Id).ConfigureAwait(false);
+				var message = await ReplyAsync("Synchronizing your SR, please wait...").ConfigureAwait(false);
 				if (player == null)
 				{
-					await ReplyAsync("I'm sorry but unfortunately I couldn't find a registered BattleTag. Please register `!register`.");
+					await ReplyAsync("I'm sorry but unfortunately I couldn't find a registered BattleTag. Please register `!register`.").ConfigureAwait(false);
 					return;
 				}
 
 				OAuthController controller = new OAuthController(_config, null);
 
-				var playerStats = await controller.GetOWUserRating(player.BattleTag);
+				var playerStats = await controller.GetOWUserRating(player.BattleTag).ConfigureAwait(false);
 				player.Sr = playerStats.Rating;
 
 				_dbContext.Players.Update(player);
-				var result = await _dbContext.SaveChangesAsync();
+				var result = await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 
 				if (result > 0)
 				{
-					await message.ModifyAsync(u => u.Content = $"Your SR has been set to `{player.Sr}`, if you believe that this is wrong, please ensure your profile is set to public and the current season's placements have been played. In addition, there may be some delay for the data to update.");
+					await message.ModifyAsync(u => u.Content = $"Your SR has been set to `{player.Sr}`, if you believe that this is wrong, please ensure your profile is set to public and the current season's placements have been played. In addition, there may be some delay for the data to update.").ConfigureAwait(false);
 				}
 			}
 		}

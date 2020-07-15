@@ -36,7 +36,7 @@ namespace OWMatchmaker.Services
 		{
 			using (var _dbContext = new OWMatchmakerContext())
 			{
-				var listOfMessages = await _dbContext.RegistrationMessages.AsQueryable().ToListAsync();
+				var listOfMessages = await _dbContext.RegistrationMessages.AsQueryable().ToListAsync().ConfigureAwait(false);
 
 				foreach (var message in listOfMessages)
 				{
@@ -46,8 +46,8 @@ namespace OWMatchmaker.Services
 						var discordUser = _discord.GetUser((ulong)message.OwnerId);
 
 						//Getting the DM channel and any registration messages that need to be expired.
-						var getDMchannel = await discordUser.GetOrCreateDMChannelAsync();
-						var getMessage = (await getDMchannel.GetMessageAsync((ulong)message.MessageId)) as IUserMessage;
+						var getDMchannel = await discordUser.GetOrCreateDMChannelAsync().ConfigureAwait(false);
+						var getMessage = (await getDMchannel.GetMessageAsync((ulong)message.MessageId).ConfigureAwait(false)) as IUserMessage;
 
 						var builder = new EmbedBuilder()
 											.WithTitle("Link Expired")
@@ -61,10 +61,10 @@ namespace OWMatchmaker.Services
 											.AddField("Registration Program", "You were too slow! The URL has expired.\nPlease input `!register` again.");
 						var embed = builder.Build();
 
-						await getMessage.ModifyAsync(u => u.Embed = embed);
+						await getMessage.ModifyAsync(u => u.Embed = embed).ConfigureAwait(false);
 
 						_dbContext.RegistrationMessages.Remove(message);
-						await _dbContext.SaveChangesAsync();
+						await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 					}
 				}
 			}
@@ -86,26 +86,26 @@ namespace OWMatchmaker.Services
 				//Get all the players in the lobby in order to build a spectator list.
 				//Gets the players informations within the lobby.
 				//Prevents reactions from being deleted where they shouldn't be.
-				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).ThenInclude(p => p.Player).FirstOrDefaultAsync(u => u.LobbyId == messageID);
+				var lobby = await _dbContext.Lobbies.Include(p => p.Owner).Include(m => m.Matches).ThenInclude(p => p.Player).FirstOrDefaultAsync(u => u.LobbyId == messageID).ConfigureAwait(false);
 
 				if (lobby == null)
 					return;
 
 				var matches = lobby.Matches.FirstOrDefault(u => u.PlayerId == userID);
 
-				var message = await arg1.GetOrDownloadAsync();
+				var message = await arg1.GetOrDownloadAsync().ConfigureAwait(false);
 
 				//We only care if the reactions added are to the bot message.
 				if (!(message.Author.Id == _discord.CurrentUser.Id))
 					return;
 
 				//Remove all user reactions from a Lobby message.
-				await message.RemoveReactionAsync(arg3.Emote, reactedUser);
+				await message.RemoveReactionAsync(arg3.Emote, reactedUser).ConfigureAwait(false);
 
 				//Check if the player is already in another lobby
 				if (lobby.Matches.FirstOrDefault(u => (u.PlayerId == userID) && (u.LobbyId != messageID)) != null)
 				{
-					await reactedUser.SendMessageAsync("You are already a part of another lobby. In order to join another lobby please leave the current one. Use the command `!lobby leave` if you can't find the lobby you joined.");
+					await reactedUser.SendMessageAsync("You are already a part of another lobby. In order to join another lobby please leave the current one. Use the command `!lobby leave` if you can't find the lobby you joined.").ConfigureAwait(false);
 					return;
 				}	
 
@@ -113,15 +113,15 @@ namespace OWMatchmaker.Services
 				//Check if the lobby is full
 				if (lobby.Matches.Count >= 24 && matches == null)
 				{
-					await reactedUser.SendMessageAsync("The lobby is full and it cannot accept more players, please wait for a player to dropout before joining again.");
+					await reactedUser.SendMessageAsync("The lobby is full and it cannot accept more players, please wait for a player to dropout before joining again.").ConfigureAwait(false);
 					return;
 				}
 
 				//Checking if the player registered before attempting to join a lobby
-				var player = await _dbContext.Players.FindAsync(userID);
+				var player = await _dbContext.Players.FindAsync(userID).ConfigureAwait(false);
 				if (player == null)
 				{
-					await reactedUser.SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.");
+					await reactedUser.SendMessageAsync("We could not set your role as you do not have a BattleNet account connected to our service. Please go through the registration process. Type `!register` to begin.").ConfigureAwait(false);
 					return;
 				}
 
@@ -144,7 +144,7 @@ namespace OWMatchmaker.Services
 					case "🛡":
 						if (matches == null)
 						{
-							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Tank, Team = (short)Team.Spectator });
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Tank, Team = (short)Team.Spectator }).ConfigureAwait(false);
 							spectators += $"{player.BattleTag} (SR: {player.Sr}) [Tank] | ";
 						}
 						else
@@ -163,7 +163,7 @@ namespace OWMatchmaker.Services
 					case "⚔":
 						if (matches == null)
 						{
-							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.DPS, Team = (short)Team.Spectator });
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.DPS, Team = (short)Team.Spectator }).ConfigureAwait(false);
 							spectators += $"{player.BattleTag} (SR: {player.Sr}) [DPS] | ";
 						}
 						else
@@ -182,7 +182,7 @@ namespace OWMatchmaker.Services
 					case "💉":
 						if (matches == null)
 						{
-							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Support, Team = (short)Team.Spectator });
+							await _dbContext.Matches.AddAsync(new Matches() { LobbyId = messageID, PlayerId = userID, MatchesPlayed = 0, Role = (short)Role.Support, Team = (short)Team.Spectator }).ConfigureAwait(false);
 							spectators += $"{player.BattleTag} (SR: {player.Sr}) [Support] | ";
 						}
 						else
@@ -246,7 +246,7 @@ namespace OWMatchmaker.Services
 						teamTwo = teamTwo.Replace($"[{(Role)matches.Role}] {player.BattleTag} (SR: {player.Sr})", "<empty slot>");
 				}
 
-				result = await _dbContext.SaveChangesAsync();
+				result = await _dbContext.SaveChangesAsync().ConfigureAwait(false);
 				if (result > 0)
 				{
 					var builder = new EmbedBuilder()
@@ -263,7 +263,7 @@ namespace OWMatchmaker.Services
 									.AddField("Team 2", teamTwo, true);
 					var embed = builder.Build();
 
-					await message.ModifyAsync(u => u.Embed = embed);
+					await message.ModifyAsync(u => u.Embed = embed).ConfigureAwait(false);
 				}
 			}
 		}
@@ -271,7 +271,7 @@ namespace OWMatchmaker.Services
 		public async Task InitializeAsync(IServiceProvider provider)
 		{
 			_provider = provider;
-			await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
+			await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider).ConfigureAwait(false);
 		}
 
 		private async Task HandleCommandAsync(SocketMessage arg)
@@ -294,7 +294,7 @@ namespace OWMatchmaker.Services
 
 				// Execute the command. (result does not indicate a return value, 
 				// rather an object stating if the command executed succesfully).
-				var result = await _commands.ExecuteAsync(context, pos, _provider);
+				var result = await _commands.ExecuteAsync(context, pos, _provider).ConfigureAwait(false);
 
 				// Uncomment the following lines if you want the bot
 				// to send a message if it failed (not advised for most situations).

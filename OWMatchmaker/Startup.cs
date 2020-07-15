@@ -38,9 +38,9 @@ namespace OWMatchmaker
 			Task.Run(async () =>
 			{
 				// Login and connect.
-				await _client.LoginAsync(TokenType.Bot, Configuration["BotToken"]);
-				await _client.StartAsync();
-				await _client.SetGameAsync(Configuration["BotStatus"]);
+				await _client.LoginAsync(TokenType.Bot, Configuration["BotToken"]).ConfigureAwait(false);
+				await _client.StartAsync().ConfigureAwait(false);
+				await _client.SetGameAsync(Configuration["BotStatus"]).ConfigureAwait(false);
 			});
 		}
 
@@ -60,7 +60,7 @@ namespace OWMatchmaker
 		{
 			Task.Run(async () =>
 			{
-				await app.ApplicationServices.GetRequiredService<OWMatchmakerService>().InitializeAsync(app.ApplicationServices);
+				await app.ApplicationServices.GetRequiredService<OWMatchmakerService>().InitializeAsync(app.ApplicationServices).ConfigureAwait(false);
 			});
 
 			app.UseHttpsRedirection();
