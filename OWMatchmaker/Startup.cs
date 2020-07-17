@@ -3,6 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,9 +49,17 @@ namespace OWMatchmaker
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services.AddRazorPages();
+			services.Configure<ForwardedHeadersOptions>(options =>
+			{
+				options.ForwardedHeaders =
+					ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+			});
+
 			services.AddSingleton(_client);
 			services.AddSingleton<CommandService>();
 			services.AddSingleton<OWMatchmakerService>();
+
+
 
 			//services.AddSingleton<InteractiveService>();
 		}
@@ -58,12 +67,13 @@ namespace OWMatchmaker
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
+			app.UseForwardedHeaders();
 			Task.Run(async () =>
 			{
 				await app.ApplicationServices.GetRequiredService<OWMatchmakerService>().InitializeAsync(app.ApplicationServices).ConfigureAwait(false);
 			});
 
-			app.UseHttpsRedirection();
+			//app.UseHttpsRedirection();
 
 			app.UseStaticFiles();
 			app.UseRouting();
