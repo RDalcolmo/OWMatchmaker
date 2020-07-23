@@ -24,6 +24,10 @@ namespace OWMatchmaker
 			.ConfigureWebHostDefaults(webBuilder =>
 			{
 				webBuilder.UseStartup<Startup>();
+			})
+			.ConfigureAppConfiguration(configuration =>
+			{
+				configuration.AddEnvironmentVariables();
 			});
 	}
 }

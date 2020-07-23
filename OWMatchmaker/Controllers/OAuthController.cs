@@ -12,6 +12,7 @@ using Discord.WebSocket;
 using Discord;
 using Microsoft.EntityFrameworkCore;
 using OWMatchmaker.Pages;
+using System.Text;
 
 namespace OWMatchmaker.Controllers
 {
@@ -109,11 +110,12 @@ namespace OWMatchmaker.Controllers
 
 		public async Task<BlizzardAccessTokenModel> GetAccessToken(string code)
 		{
-			var authUrl = _config["BlizzardTokenURL"] + $"{code}&redirect_uri={_config["BlizzardRedirectURI"]}&scope=openid";
+			var authUrl = $"{_config["BlizzardTokenURL"]}{code}&redirect_uri={_config["BlizzardRedirectURI"]}&scope=openid";
+			string basicAuthHeader = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_config["BlizzardClientID"]}:{_config["BlizzardClientSecret"]}"));
 			using (var httpClient = new HttpClient())
 			{
 				httpClient.DefaultRequestHeaders.Add("client_id", _config["BlizzardClientID"]);
-				httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", _config["BlizzardAuthHeader"]);
+				httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuthHeader);
 				var response = await httpClient.PostAsync(authUrl, null);
 
 				if (response.IsSuccessStatusCode)
